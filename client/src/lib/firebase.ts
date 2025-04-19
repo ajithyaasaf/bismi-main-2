@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, push, set, remove, update, DatabaseReference, DataSnapshot } from "firebase/database";
 
 // Firebase configuration
+// When deploying to Vercel, consider using environment variables for these values
 const firebaseConfig = {
   apiKey: "AIzaSyA3f4gJOKZDIjy9gnhSSpMVLs1UblGxo0s",
   authDomain: "bismi-broilers-3ca96.firebaseapp.com",

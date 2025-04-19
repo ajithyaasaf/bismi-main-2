@@ -105,10 +105,26 @@ This application was built with a focus on:
 5. **Maintainability**: Clear separation of concerns and consistent coding patterns
 
 ## Deployment
-The application is designed to be deployed on Replit, with the following features:
+The application is designed to be deployed on Vercel, with the following features:
 - Combined development server that serves both backend API and frontend assets
 - Production build optimization for faster performance
 - Environment variable support for configuration
+- Firebase Realtime Database integration for persistent data storage
+
+### Firebase Configuration
+The application uses Firebase Realtime Database for data persistence. The Firebase configuration is stored in:
+- `client/src/lib/firebase.ts` - Client-side Firebase setup
+- `server/firebase-storage.ts` - Server-side Firebase storage implementation
+
+### Vercel Deployment
+To deploy this application to Vercel:
+1. Push the codebase to a GitHub repository
+2. Connect the repository to Vercel
+3. Configure the following environment variables on Vercel:
+   - NODE_ENV=production
+   - Add Firebase configuration as environment variables (optional for added security)
+4. Deploy using the Vercel dashboard or CLI
+5. The deployment is configured via `vercel.json` in the project root
 
 ## Future Enhancements
 Potential areas for expansion include:
