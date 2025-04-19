@@ -57,27 +57,36 @@ export const deleteData = async (path: string, id: string): Promise<void> => {
 };
 
 export const getData = async <T>(path: string): Promise<T[]> => {
-  return new Promise((resolve, reject) => {
+  return new Promise<T[]>((resolve, reject) => {
     const dbRef = getDbRef(path);
-    onValue(dbRef, (snapshot: DataSnapshot) => {
+    
+    const onSuccessCallback = (snapshot: DataSnapshot) => {
       const data = snapshot.val();
       const formattedData = data ? Object.keys(data).map(key => ({
         id: key,
         ...data[key]
       })) : [];
       resolve(formattedData as T[]);
-    }, {
-      onlyOnce: true
-    }, error => {
+    };
+    
+    const onErrorCallback = (error: Error) => {
       reject(error);
-    });
+    };
+    
+    // Uses the correct onValue signature
+    onValue(
+      dbRef,
+      onSuccessCallback,
+      onErrorCallback
+    );
   });
 };
 
 export const getDataById = async <T>(path: string, id: string): Promise<T | null> => {
-  return new Promise((resolve, reject) => {
+  return new Promise<T | null>((resolve, reject) => {
     const itemRef = getDbRef(`${path}/${id}`);
-    onValue(itemRef, (snapshot: DataSnapshot) => {
+    
+    const onSuccessCallback = (snapshot: DataSnapshot) => {
       if (snapshot.exists()) {
         resolve({
           id,
@@ -86,11 +95,18 @@ export const getDataById = async <T>(path: string, id: string): Promise<T | null
       } else {
         resolve(null);
       }
-    }, {
-      onlyOnce: true
-    }, error => {
+    };
+    
+    const onErrorCallback = (error: Error) => {
       reject(error);
-    });
+    };
+    
+    // Uses the correct onValue signature
+    onValue(
+      itemRef,
+      onSuccessCallback,
+      onErrorCallback
+    );
   });
 };
 

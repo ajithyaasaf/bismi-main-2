@@ -1,79 +1,70 @@
-# Vercel Deployment Guide for Bismi Chicken Shop Management System
+# Deploying Bismi Chicken Shop to Vercel
 
-This guide will help you deploy the Bismi Chicken Shop Management System on Vercel. Follow these steps to ensure a successful deployment.
+This guide outlines the steps to deploy the Bismi Chicken Shop application to Vercel.
 
 ## Prerequisites
 
-1. A GitHub account
-2. A Vercel account (sign up at [vercel.com](https://vercel.com))
-3. Your Firebase project configured (as per the current setup)
+1. A Vercel account
+2. Firebase project with Realtime Database
+3. Access to the project's GitHub repository
 
-## Step 1: Push Your Code to GitHub
+## Environment Variables
 
-1. Create a new GitHub repository
-2. Push your code to the repository
+The following environment variables need to be set in your Vercel project:
 
-## Step 2: Connect to Vercel
+- `FIREBASE_API_KEY`: Your Firebase API key
+- `FIREBASE_AUTH_DOMAIN`: Your Firebase auth domain
+- `FIREBASE_DATABASE_URL`: Your Firebase Realtime Database URL
+- `FIREBASE_PROJECT_ID`: Your Firebase project ID
+- `FIREBASE_STORAGE_BUCKET`: Your Firebase storage bucket
+- `FIREBASE_MESSAGING_SENDER_ID`: Your Firebase messaging sender ID
+- `FIREBASE_APP_ID`: Your Firebase app ID
+- `FIREBASE_MEASUREMENT_ID`: Your Firebase measurement ID (optional)
+- `NODE_ENV`: Set to 'production'
 
-1. Log in to your Vercel account
-2. Click "Add New..." > "Project"
-3. Select the GitHub repository you created
-4. Configure the project:
-   - Framework Preset: Other
-   - Root Directory: ./
-   - Build Command: npm run build
-   - Output Directory: dist
+## Deployment Steps
 
-## Step 3: Configure Environment Variables
+### Option 1: Deploy from GitHub
 
-Add the following environment variables in the Vercel project settings:
+1. Connect your GitHub repository to Vercel
+2. Configure the project with the following settings:
+   - Build Command: `bash ./vercel-build.sh`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+3. Add the Environment Variables listed above
+4. Deploy
 
-```
-NODE_ENV=production
-```
+### Option 2: Deploy using Vercel CLI
 
-For added security, consider adding your Firebase configuration as environment variables:
-
-```
-FIREBASE_API_KEY=AIzaSyA3f4gJOKZDIjy9gnhSSpMVLs1UblGxo0s
-FIREBASE_AUTH_DOMAIN=bismi-broilers-3ca96.firebaseapp.com
-FIREBASE_DATABASE_URL=https://bismi-broilers-3ca96-default-rtdb.firebaseio.com
-FIREBASE_PROJECT_ID=bismi-broilers-3ca96
-FIREBASE_STORAGE_BUCKET=bismi-broilers-3ca96.firebasestorage.app
-FIREBASE_MESSAGING_SENDER_ID=949430744092
-FIREBASE_APP_ID=1:949430744092:web:4ea5638a9d38ba3e76dbd9
-```
-
-## Step 4: Deploy
-
-1. Click "Deploy"
-2. Wait for the deployment to complete
-3. Your application will be available at your-project-name.vercel.app
+1. Install Vercel CLI: `npm i -g vercel`
+2. Login to Vercel: `vercel login`
+3. Navigate to your project directory
+4. Run: `vercel`
+5. Follow the prompts to configure your deployment
+6. Set the environment variables when prompted
 
 ## Troubleshooting
 
-If you encounter errors during deployment:
+If you encounter issues during deployment:
 
-### Function Execution Timeout
+1. Check the build logs for any errors
+2. Verify that all environment variables are correctly set
+3. Ensure Firebase Realtime Database rules allow read/write operations
+4. Check if your Firebase project has the appropriate authentication methods enabled
 
-If your serverless function times out, you may need to adjust the function settings in `vercel.json`. This file is already configured with increased memory and timeout limits.
+## Support
 
-### CORS Issues
+If you need further assistance with deployment:
 
-If you're experiencing CORS issues when accessing the API, ensure the CORS headers are properly set in the server code. This has been added to the server code already.
+1. Refer to the Vercel documentation: https://vercel.com/docs
+2. Refer to the Firebase documentation: https://firebase.google.com/docs
+3. Contact the development team for project-specific issues
 
-### Database Connection Issues
+## Post-Deployment
 
-If you're having trouble connecting to the Firebase Realtime Database:
+After successful deployment:
 
-1. Verify the Firebase configuration settings
-2. Ensure the database rules are properly set to allow read/write access
-3. Check if your IP is not restricted in Firebase security rules
-
-## Additional Notes
-
-- The application is configured to use Firebase Realtime Database for data persistence
-- The server is set up to handle both local development and serverless deployment
-- If you need to make further modifications for Vercel compatibility, focus on the server-side code
-
-For more information and advanced configuration options, refer to the [Vercel documentation](https://vercel.com/docs).
+1. Test all functionality on the live site
+2. Set up a custom domain (optional)
+3. Configure additional security settings in Vercel dashboard
+4. Set up monitoring and analytics
