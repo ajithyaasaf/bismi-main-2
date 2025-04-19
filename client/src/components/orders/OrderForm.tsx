@@ -10,6 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
+// Helper type for API responses
+interface ApiResponse<T> {
+  id: string;
+  [key: string]: any;
+}
+
 interface OrderFormProps {
   customers: Customer[];
   inventory: Inventory[];
@@ -131,13 +137,15 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
         }
         
         // Create new customer
-        const newCustomer = await apiRequest('POST', '/api/customers', {
+        const response = await apiRequest('POST', '/api/customers', {
           name: customerName,
           type: 'random',
           contact: customerPhone,
           pendingAmount: 0
         });
         
+        // Parse response to get the customer object
+        const newCustomer = await response.json();
         orderCustomerId = newCustomer.id;
       }
       
