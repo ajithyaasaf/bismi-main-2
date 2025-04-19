@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -8,16 +8,35 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pageTitle, setPageTitle] = useState("Dashboard");
+
+  // Update page title based on location path
+  useEffect(() => {
+    const pathSegments = window.location.pathname.split('/');
+    const segment = pathSegments[1];
+    
+    if (!segment) {
+      setPageTitle("Dashboard");
+    } else {
+      const formattedTitle = segment.charAt(0).toUpperCase() + segment.slice(1);
+      setPageTitle(formattedTitle);
+    }
+  }, [window.location.pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background font-body">
       <Sidebar isOpen={sidebarOpen} closeSidebar={() => setSidebarOpen(false)} />
       
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <Header 
+          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+          pageTitle={pageTitle}
+        />
         
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="page-container">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -1,5 +1,4 @@
 import { useLocation, Link } from "wouter";
-import { motion } from "framer-motion";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,25 +28,19 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
     <>
       {/* Mobile sidebar backdrop */}
       {isOpen && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div 
           className="fixed inset-0 z-40 bg-gray-800 bg-opacity-80 backdrop-blur-sm md:hidden"
           onClick={closeSidebar}
-        ></motion.div>
+        ></div>
       )}
       
       {/* Sidebar */}
-      <motion.div 
+      <div 
         className={`
           fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-gray-900 to-gray-800 text-white shadow-xl 
           transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
-        initial={{ x: -300 }}
-        animate={{ x: isOpen ? 0 : -300 }}
-        transition={{ duration: 0.2 }}
       >
         <div className="flex items-center justify-center h-20 border-b border-gray-700">
           <h1 className="text-2xl font-bold font-sans">
@@ -94,7 +87,7 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </>
   );
 }
