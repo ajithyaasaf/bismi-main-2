@@ -7,6 +7,7 @@ import {
   Order, InsertOrder, orders, OrderItem,
   Transaction, InsertTransaction, transactions
 } from "@shared/schema";
+import { FirebaseStorage } from './firebase-storage';
 
 // Interface with all CRUD operations for our application
 export interface IStorage {
@@ -333,4 +334,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use Firebase Storage Implementation
+export const storage = new FirebaseStorage();
