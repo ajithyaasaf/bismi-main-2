@@ -8,6 +8,8 @@ interface StatsCardProps {
   iconColor: string;
   linkText: string;
   linkHref: string;
+  trend?: string;
+  trendDirection?: "up" | "down" | "neutral";
 }
 
 export default function StatsCard({
@@ -17,34 +19,53 @@ export default function StatsCard({
   iconBgColor,
   iconColor,
   linkText,
-  linkHref
+  linkHref,
+  trend,
+  trendDirection = "neutral"
 }: StatsCardProps) {
+  // Determine trend icon and color
+  const getTrendIcon = () => {
+    if (trendDirection === "up") return "fa-arrow-up";
+    if (trendDirection === "down") return "fa-arrow-down";
+    return "fa-minus";
+  };
+
+  const getTrendColor = () => {
+    if (trendDirection === "up") return "text-green-600";
+    if (trendDirection === "down") return "text-red-600";
+    return "text-gray-500";
+  };
+
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
-        <div className="flex items-center">
-          <div className={`flex-shrink-0 ${iconBgColor} rounded-md p-3`}>
-            <i className={`fas fa-${icon} ${iconColor} text-xl`}></i>
+    <div className="card-hover bg-white overflow-hidden shadow-sm rounded-lg border">
+      <div className="px-5 py-5">
+        <div className="flex justify-between items-start">
+          <div className={`${iconBgColor} rounded-full p-3`}>
+            <i className={`fas fa-${icon} ${iconColor} text-lg`}></i>
           </div>
-          <div className="ml-5 w-0 flex-1">
-            <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                {title}
-              </dt>
-              <dd className="flex items-baseline">
-                <div className="text-2xl font-semibold text-gray-900">
-                  {value}
-                </div>
-              </dd>
-            </dl>
+          <div className="flex flex-col items-end">
+            <h3 className="text-sm font-medium text-gray-500">
+              {title}
+            </h3>
+            <p className="text-2xl font-bold text-gray-900 mt-1">
+              {value}
+            </p>
+            
+            {trend && (
+              <div className="flex items-center mt-1 text-xs">
+                <i className={`fas ${getTrendIcon()} ${getTrendColor()} mr-1`}></i>
+                <span className={`${getTrendColor()}`}>{trend}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <div className="bg-gray-50 px-4 py-4 sm:px-6">
+      <div className="bg-gray-50 px-5 py-3 border-t">
         <div className="text-sm">
           <Link href={linkHref}>
-            <a className={`font-medium hover:underline ${iconColor}`}>
-              {linkText} <span aria-hidden="true">&rarr;</span>
+            <a className={`font-medium hover:underline ${iconColor} flex items-center`}>
+              {linkText} 
+              <i className="fas fa-chevron-right ml-1 text-xs"></i>
             </a>
           </Link>
         </div>

@@ -26,19 +26,55 @@
   h3 {
     @apply text-xl md:text-2xl;
   }
+  
+  a {
+    @apply transition-colors;
+  }
 }
 
 @layer components {
   .gradient-heading {
     @apply bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent;
   }
+  
+  .gradient-card {
+    @apply bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
+  }
 
   .dashboard-card {
     @apply rounded-lg border bg-card p-5 shadow-sm transition-all hover:shadow-md;
   }
+  
+  .dashboard-container {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6;
+  }
+  
+  .dashboard-section {
+    @apply bg-white rounded-lg p-5 border border-gray-100 shadow-sm;
+  }
+  
+  .dashboard-section-title {
+    @apply text-lg font-semibold text-gray-900 mb-4 flex items-center;
+  }
 
   .data-table {
     @apply w-full overflow-auto;
+  }
+  
+  .data-table th {
+    @apply bg-gray-50 text-gray-600 text-sm font-medium p-3 text-left;
+  }
+  
+  .data-table td {
+    @apply p-3 border-t border-gray-100;
+  }
+  
+  .data-table tr:hover {
+    @apply bg-gray-50;
   }
 
   .form-container {
@@ -57,6 +93,22 @@
     @apply flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary;
   }
   
+  .icon-button {
+    @apply flex items-center justify-center h-9 w-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600;
+  }
+  
+  .primary-button {
+    @apply px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 shadow-sm flex items-center;
+  }
+  
+  .secondary-button {
+    @apply px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 shadow-sm flex items-center;
+  }
+  
+  .outline-button {
+    @apply px-4 py-2 border border-primary/50 text-primary rounded-md hover:bg-primary/5 shadow-sm flex items-center;
+  }
+  
   .status-pending {
     @apply bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md text-xs font-medium;
   }
@@ -67,5 +119,49 @@
   
   .status-cancelled {
     @apply bg-red-100 text-red-800 px-2 py-1 rounded-md text-xs font-medium;
+  }
+  
+  .tag {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .tag-blue {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .tag-green {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .tag-red {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .tag-yellow {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .tag-purple {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  .tag-gray {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  .progress-bar {
+    @apply h-2 w-full bg-gray-200 rounded-full overflow-hidden;
+  }
+  
+  .progress-bar-fill {
+    @apply h-full bg-primary;
+  }
+  
+  .avatar {
+    @apply h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium;
+  }
+  
+  .notification-badge {
+    @apply absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center;
   }
 }

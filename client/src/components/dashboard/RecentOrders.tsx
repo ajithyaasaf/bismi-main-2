@@ -29,58 +29,90 @@ export default function RecentOrders({ orders, customers }: RecentOrdersProps) {
       : displayItems;
   };
 
+  // Get customer initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  // Get random color for avatar
+  const getAvatarColor = (id: string) => {
+    const colors = [
+      'bg-blue-100 text-blue-600',
+      'bg-green-100 text-green-600',
+      'bg-purple-100 text-purple-600',
+      'bg-yellow-100 text-yellow-600',
+      'bg-pink-100 text-pink-600',
+      'bg-indigo-100 text-indigo-600',
+    ];
+    const index = id.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Orders</h3>
-          <Link href="/orders">
-            <a className="text-sm font-medium text-blue-600 hover:text-blue-500">
-              View all
-            </a>
-          </Link>
+    <div className="max-h-[350px] overflow-y-auto">
+      {orders.length === 0 ? (
+        <div className="py-8 text-center text-gray-500 flex flex-col items-center">
+          <i className="fas fa-clipboard-list text-2xl text-gray-400 mb-2"></i>
+          <p>No recent orders found</p>
         </div>
-      </div>
-      <div className="divide-y divide-gray-200 max-h-[300px] overflow-y-auto">
-        {orders.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500">
-            No recent orders found
-          </div>
-        ) : (
-          orders.map(order => (
-            <div key={order.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-blue-600 truncate">
-                  {getCustomerName(order.customerId)}
-                </p>
-                <div className="ml-2 flex-shrink-0 flex">
-                  <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${order.status === 'paid' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'}`}>
-                    {order.status === 'paid' ? 'Paid' : 'Pending'}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-2 sm:flex sm:justify-between">
-                <div className="sm:flex">
-                  <p className="flex items-center text-sm text-gray-500">
-                    <i className="fas fa-drumstick-bite flex-shrink-0 mr-1.5 text-gray-400"></i>
-                    {formatItems(order)}
-                  </p>
-                </div>
-                <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                  <i className="fas fa-calendar flex-shrink-0 mr-1.5 text-gray-400"></i>
-                  <p>{format(new Date(order.date), 'PPpp')}</p>
-                </div>
-              </div>
-              <div className="mt-2 flex justify-between">
-                <div className="text-sm text-gray-900 font-medium">₹{order.total.toFixed(2)}</div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      ) : (
+        <div className="space-y-4">
+          {orders.map(order => {
+            const customerName = getCustomerName(order.customerId);
+            const initials = getInitials(customerName);
+            const avatarColor = getAvatarColor(order.customerId);
+            
+            return (
+              <Link key={order.id} href={`/orders/${order.id}`}>
+                <a className="block p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
+                  <div className="flex items-start">
+                    <div className={`flex-shrink-0 h-10 w-10 rounded-full ${avatarColor} flex items-center justify-center mr-3`}>
+                      <span className="text-sm font-bold">{initials}</span>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {customerName}
+                        </p>
+                        <span className={`
+                          inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                          ${order.status === 'completed' ? 'status-completed' : 
+                            order.status === 'cancelled' ? 'status-cancelled' : 'status-pending'}
+                        `}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </span>
+                      </div>
+                      
+                      <div className="mt-1 flex items-center text-xs text-gray-500">
+                        <i className="fas fa-calendar-alt mr-1.5 text-gray-400"></i>
+                        <span>{order.date ? format(new Date(order.date), 'MMM d, yyyy • h:mm a') : 'No date'}</span>
+                      </div>
+                      
+                      <div className="mt-2 flex items-center text-xs text-gray-500">
+                        <i className="fas fa-shopping-basket mr-1.5 text-gray-400"></i>
+                        <span className="truncate">{formatItems(order)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex justify-between items-center">
+                    <div className="text-sm font-semibold text-primary">
+                      ₹{(order.total || 0).toFixed(2)}
+                    </div>
+                    <i className="fas fa-chevron-right text-xs text-gray-400"></i>
+                  </div>
+                </a>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
