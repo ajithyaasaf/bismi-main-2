@@ -4,6 +4,7 @@ import SalesChart from "./SalesChart";
 import RecentOrders from "./RecentOrders";
 import LowStockAlert from "./LowStockAlert";
 import SupplierDebts from "./SupplierDebts";
+import { Link } from "wouter";
 
 interface DashboardProps {
   totalStock: number;
@@ -33,25 +34,25 @@ export default function Dashboard({
   onNewOrder
 }: DashboardProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       {/* Page Title and Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
         <div>
           <h1 className="gradient-heading text-3xl font-bold">Business Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Real-time overview of your business performance</p>
+          <p className="mt-1 text-sm text-gray-500">Real-time overview of your shop performance</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={onNewOrder}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+            className="primary-button"
           >
             <i className="fas fa-plus mr-2"></i> New Order
           </button>
           <button 
             onClick={onAddStock}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+            className="outline-button"
           >
-            <i className="fas fa-sync-alt mr-2"></i> Update Stock
+            <i className="fas fa-boxes mr-2"></i> Update Stock
           </button>
         </div>
       </div>
@@ -108,13 +109,14 @@ export default function Dashboard({
       </div>
 
       {/* Charts and Recent Activity */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
         {/* Sales Trend Chart */}
-        <div className="dashboard-card">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Sales Trend</h2>
-            <div className="flex items-center space-x-2">
-              <select className="text-xs rounded border-gray-200 bg-transparent px-2 py-1">
+        <div className="dashboard-section lg:col-span-4">
+          <div className="dashboard-section-title">
+            <i className="fas fa-chart-line text-primary mr-2"></i>
+            Sales Analysis
+            <div className="ml-auto">
+              <select className="text-xs rounded border border-gray-200 bg-transparent px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary">
                 <option>Last 7 days</option>
                 <option>Last 30 days</option>
                 <option>Last 3 months</option>
@@ -125,44 +127,95 @@ export default function Dashboard({
         </div>
         
         {/* Recent Orders */}
-        <div className="dashboard-card">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent Orders</h2>
-            <button className="text-xs text-primary hover:underline">View all</button>
+        <div className="dashboard-section lg:col-span-3">
+          <div className="dashboard-section-title">
+            <i className="fas fa-shopping-cart text-primary mr-2"></i>
+            Recent Orders
+            <Link href="/orders">
+              <a className="ml-auto text-xs text-primary hover:underline flex items-center">
+                View all <i className="fas fa-chevron-right ml-1 text-xs"></i>
+              </a>
+            </Link>
           </div>
           <RecentOrders orders={recentOrders} customers={customers} />
         </div>
       </div>
 
       {/* Low Stock Alert and Supplier Debt */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Low Stock Alert */}
-        <div className="dashboard-card border-yellow-200">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <i className="fas fa-exclamation-triangle text-yellow-500"></i>
-              <h2 className="text-lg font-semibold">Low Stock Alert</h2>
+        <div className="dashboard-section">
+          <div className="dashboard-section-title">
+            <div className="flex items-center text-yellow-600">
+              <i className="fas fa-exclamation-triangle mr-2"></i>
+              Low Stock Alert
             </div>
             <button 
               onClick={onAddStock}
-              className="text-xs text-primary hover:underline"
+              className="ml-auto text-xs outline-button py-1 px-3"
             >
-              Update inventory
+              <i className="fas fa-plus mr-1.5"></i>
+              Add Stock
             </button>
           </div>
           <LowStockAlert lowStockItems={lowStockItems} onAddStock={onAddStock} />
         </div>
         
         {/* Supplier Debts */}
-        <div className="dashboard-card border-red-200">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <i className="fas fa-money-bill-wave text-red-500"></i>
-              <h2 className="text-lg font-semibold">Supplier Debts</h2>
+        <div className="dashboard-section">
+          <div className="dashboard-section-title">
+            <div className="flex items-center text-red-600">
+              <i className="fas fa-file-invoice-dollar mr-2"></i>
+              Supplier Payments
             </div>
-            <button className="text-xs text-primary hover:underline">View all</button>
+            <Link href="/suppliers">
+              <a className="ml-auto text-xs text-primary hover:underline flex items-center">
+                View all <i className="fas fa-chevron-right ml-1 text-xs"></i>
+              </a>
+            </Link>
           </div>
           <SupplierDebts suppliers={suppliersWithDebt} />
+        </div>
+      </div>
+      
+      {/* Quick Actions */}
+      <div className="dashboard-section">
+        <div className="dashboard-section-title">
+          <i className="fas fa-bolt text-amber-500 mr-2"></i>
+          Quick Actions
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button onClick={onNewOrder} className="p-4 border border-gray-200 rounded-lg hover:border-primary/30 hover:bg-primary/5 transition-colors text-center">
+            <div className="icon-container mx-auto mb-2">
+              <i className="fas fa-receipt"></i>
+            </div>
+            <p className="text-sm font-medium">New Order</p>
+          </button>
+          
+          <button onClick={onAddStock} className="p-4 border border-gray-200 rounded-lg hover:border-primary/30 hover:bg-primary/5 transition-colors text-center">
+            <div className="icon-container mx-auto mb-2">
+              <i className="fas fa-boxes"></i>
+            </div>
+            <p className="text-sm font-medium">Update Stock</p>
+          </button>
+          
+          <Link href="/suppliers/new">
+            <a className="p-4 border border-gray-200 rounded-lg hover:border-primary/30 hover:bg-primary/5 transition-colors text-center">
+              <div className="icon-container mx-auto mb-2">
+                <i className="fas fa-truck"></i>
+              </div>
+              <p className="text-sm font-medium">Add Supplier</p>
+            </a>
+          </Link>
+          
+          <Link href="/customers/new">
+            <a className="p-4 border border-gray-200 rounded-lg hover:border-primary/30 hover:bg-primary/5 transition-colors text-center">
+              <div className="icon-container mx-auto mb-2">
+                <i className="fas fa-user-plus"></i>
+              </div>
+              <p className="text-sm font-medium">Add Customer</p>
+            </a>
+          </Link>
         </div>
       </div>
     </div>
