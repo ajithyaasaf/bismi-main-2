@@ -2,7 +2,6 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, push, set, remove, update, DatabaseReference, DataSnapshot } from "firebase/database";
 
 // Firebase configuration
-// When deploying to Vercel, consider using environment variables for these values
 const firebaseConfig = {
   apiKey: "AIzaSyA3f4gJOKZDIjy9gnhSSpMVLs1UblGxo0s",
   authDomain: "bismi-broilers-3ca96.firebaseapp.com",
@@ -57,36 +56,27 @@ export const deleteData = async (path: string, id: string): Promise<void> => {
 };
 
 export const getData = async <T>(path: string): Promise<T[]> => {
-  return new Promise<T[]>((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const dbRef = getDbRef(path);
-    
-    const onSuccessCallback = (snapshot: DataSnapshot) => {
+    onValue(dbRef, (snapshot: DataSnapshot) => {
       const data = snapshot.val();
       const formattedData = data ? Object.keys(data).map(key => ({
         id: key,
         ...data[key]
       })) : [];
       resolve(formattedData as T[]);
-    };
-    
-    const onErrorCallback = (error: Error) => {
+    }, {
+      onlyOnce: true
+    }, error => {
       reject(error);
-    };
-    
-    // Uses the correct onValue signature
-    onValue(
-      dbRef,
-      onSuccessCallback,
-      onErrorCallback
-    );
+    });
   });
 };
 
 export const getDataById = async <T>(path: string, id: string): Promise<T | null> => {
-  return new Promise<T | null>((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const itemRef = getDbRef(`${path}/${id}`);
-    
-    const onSuccessCallback = (snapshot: DataSnapshot) => {
+    onValue(itemRef, (snapshot: DataSnapshot) => {
       if (snapshot.exists()) {
         resolve({
           id,
@@ -95,18 +85,11 @@ export const getDataById = async <T>(path: string, id: string): Promise<T | null
       } else {
         resolve(null);
       }
-    };
-    
-    const onErrorCallback = (error: Error) => {
+    }, {
+      onlyOnce: true
+    }, error => {
       reject(error);
-    };
-    
-    // Uses the correct onValue signature
-    onValue(
-      itemRef,
-      onSuccessCallback,
-      onErrorCallback
-    );
+    });
   });
 };
 

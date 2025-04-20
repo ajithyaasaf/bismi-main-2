@@ -24,7 +24,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [window.location.pathname]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background font-body">
+    <div className="flex h-screen overflow-hidden bg-gray-50 font-body">
       <Sidebar isOpen={sidebarOpen} closeSidebar={() => setSidebarOpen(false)} />
       
       <div className="flex flex-col flex-1 overflow-hidden">

@@ -1,15 +1,12 @@
-import { 
-  User, InsertUser,
-  Supplier, InsertSupplier,
-  Inventory, InsertInventory,
-  Customer, InsertCustomer,
-  Order, InsertOrder, OrderItem,
-  Transaction, InsertTransaction
-} from "@shared/schema";
 import { v4 as uuidv4 } from 'uuid';
-
-// Import the Firebase storage implementation
-import { FirebaseStorage } from './firebase-storage';
+import { 
+  User, InsertUser, users,
+  Supplier, InsertSupplier, suppliers,
+  Inventory, InsertInventory, inventory,
+  Customer, InsertCustomer, customers,
+  Order, InsertOrder, orders, OrderItem,
+  Transaction, InsertTransaction, transactions
+} from "@shared/schema";
 
 // Interface with all CRUD operations for our application
 export interface IStorage {
@@ -104,7 +101,7 @@ export class MemStorage implements IStorage {
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     const newSupplier: Supplier = { 
       ...supplier, 
       id, 
@@ -336,5 +333,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use Firebase Storage Implementation
-export const storage = new FirebaseStorage();
+export const storage = new MemStorage();

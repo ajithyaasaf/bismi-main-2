@@ -10,13 +10,13 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
   
   // Navigation items with improved icons
   const navItems = [
-    { name: "Dashboard", path: "/", icon: "fa-chart-pie" },
-    { name: "Suppliers", path: "/suppliers", icon: "fa-truck" },
-    { name: "Inventory", path: "/inventory", icon: "fa-warehouse" },
-    { name: "Orders", path: "/orders", icon: "fa-shopping-basket" },
-    { name: "Customers", path: "/customers", icon: "fa-user-friends" },
-    { name: "Transactions", path: "/transactions", icon: "fa-money-bill-wave" },
-    { name: "Reports", path: "/reports", icon: "fa-chart-line" }
+    { name: "Dashboard", path: "/", icon: "fa-tachometer-alt" },
+    { name: "Suppliers", path: "/suppliers", icon: "fa-truck-loading" },
+    { name: "Inventory", path: "/inventory", icon: "fa-boxes" },
+    { name: "Orders", path: "/orders", icon: "fa-shopping-cart" },
+    { name: "Customers", path: "/customers", icon: "fa-users" },
+    { name: "Transactions", path: "/transactions", icon: "fa-exchange-alt" },
+    { name: "Reports", path: "/reports", icon: "fa-chart-bar" }
   ];
   
   const isActive = (path: string) => {
@@ -44,46 +44,50 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
       >
         <div className="flex items-center justify-center h-20 border-b border-gray-700">
           <h1 className="text-2xl font-bold font-sans">
-            <span className="gradient-heading text-2xl">Bismi</span>
-            <span className="ml-2">Chicken Shop</span>
+            <span className="text-orange-500 font-bold">Bismi</span>
+            <span className="ml-2 text-amber-50">Chicken Shop</span>
           </h1>
         </div>
         
         <div className="flex flex-col flex-1 overflow-y-auto">
-          <nav className="flex-1 px-3 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-2">
             {navItems.map((item) => (
-              <Link 
-                key={item.path} 
-                href={item.path}
-                onClick={closeSidebar}
+              <div
+                key={item.path}
+                className="nav-item"
               >
-                <a className={`
-                  flex items-center px-4 py-3 rounded-lg group transition-all duration-200
-                  ${isActive(item.path) 
-                    ? 'text-white bg-primary shadow-md' 
-                    : 'text-gray-200 hover:bg-gray-700/50 hover:text-white'}
-                `}>
+                <Link
+                  href={item.path}
+                  onClick={closeSidebar}
+                >
                   <div className={`
-                    icon-container mr-3 
-                    ${isActive(item.path) ? 'bg-white/20' : ''}
+                    flex items-center px-4 py-3 rounded-lg group transition-all duration-200 cursor-pointer
+                    ${isActive(item.path) 
+                      ? 'text-white bg-orange-600 shadow-md' 
+                      : 'text-gray-200 hover:bg-gray-700/50 hover:text-white'}
                   `}>
-                    <i className={`fas ${item.icon}`}></i>
+                    <div className={`
+                      flex items-center justify-center w-10 h-10 rounded-full mr-3
+                      ${isActive(item.path) ? 'bg-white/20' : 'bg-gray-800'}
+                    `}>
+                      <i className={`fas ${item.icon}`}></i>
+                    </div>
+                    <span className="font-medium">{item.name}</span>
                   </div>
-                  <span className="font-medium">{item.name}</span>
-                </a>
-              </Link>
+                </Link>
+              </div>
             ))}
           </nav>
         </div>
         
         <div className="p-5 border-t border-gray-700">
           <div className="flex items-center space-x-4">
-            <div className="icon-container">
-              <i className="fas fa-store"></i>
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-600/20">
+              <i className="fas fa-store text-orange-500"></i>
             </div>
             <div>
               <p className="text-sm text-gray-300">Managing</p>
-              <p className="font-medium">Bismi Chicken Shop</p>
+              <p className="font-medium text-amber-50">Bismi Chicken Shop</p>
             </div>
           </div>
         </div>
