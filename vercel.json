@@ -1,23 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server/vercel.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "client/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server/vercel.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "client/$1"
-    }
+  "buildCommand": "node vercel-build.mjs",
+  "outputDirectory": ".vercel/output",
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
