@@ -53,14 +53,14 @@ fs.writeFileSync('.vercel/output/config.json', JSON.stringify(config, null, 2));
 // Generate API function
 const apiFunction = {
   runtime: 'nodejs18.x',
-  handler: 'server/vercel.ts',
+  handler: 'api/index.ts',
   memory: 1024
 };
 
 fs.writeFileSync('.vercel/output/functions/api.func/index.js', `
 // Serverless function entry point
-import app from '../../server/vercel.ts';
-export default app;
+import handler from '../../api/index.ts';
+export default handler;
 `);
 
 fs.writeFileSync('.vercel/output/functions/api.func/.vc-config.json', JSON.stringify(apiFunction, null, 2));
