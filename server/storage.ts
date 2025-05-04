@@ -222,11 +222,17 @@ export class MemStorage implements IStorage {
 
   async createOrder(order: InsertOrder): Promise<Order> {
     const id = uuidv4();
+    // Convert items to JSON if needed
+    const itemsValue = typeof order.items === 'string' 
+      ? JSON.parse(order.items as unknown as string) 
+      : order.items;
+      
     const newOrder: Order = { 
       ...order, 
       id,
       date: order.date ?? new Date(),
-      total: order.total ?? 0
+      total: order.total ?? 0,
+      items: itemsValue
     };
     this.ordersList.set(id, newOrder);
     

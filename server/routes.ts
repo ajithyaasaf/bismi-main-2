@@ -412,6 +412,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get all orders within date range
           const orders = await storage.getAllOrders();
           const filteredOrders = orders.filter(order => {
+            // Skip orders with null dates or handle them as needed
+            if (!order.date) return false;
             const orderDate = new Date(order.date);
             return (!startDate || orderDate >= startDate) && 
                   (!endDate || orderDate <= endDate);
