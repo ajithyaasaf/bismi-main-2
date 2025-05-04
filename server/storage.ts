@@ -105,6 +105,8 @@ export class MemStorage implements IStorage {
     const newSupplier: Supplier = { 
       ...supplier, 
       id, 
+      debt: supplier.debt ?? 0,
+      contact: supplier.contact ?? null,
       createdAt: new Date()
     };
     this.suppliers.set(id, newSupplier);
@@ -141,6 +143,8 @@ export class MemStorage implements IStorage {
     const newItem: Inventory = { 
       ...item, 
       id, 
+      quantity: item.quantity ?? 0,
+      rate: item.rate ?? 0,
       updatedAt: new Date()
     };
     this.inventoryItems.set(id, newItem);
@@ -178,6 +182,8 @@ export class MemStorage implements IStorage {
     const newCustomer: Customer = { 
       ...customer, 
       id, 
+      contact: customer.contact ?? null,
+      pendingAmount: customer.pendingAmount ?? 0,
       createdAt: new Date()
     };
     this.customersList.set(id, newCustomer);
@@ -218,7 +224,9 @@ export class MemStorage implements IStorage {
     const id = uuidv4();
     const newOrder: Order = { 
       ...order, 
-      id
+      id,
+      date: order.date ?? new Date(),
+      total: order.total ?? 0
     };
     this.ordersList.set(id, newOrder);
     
@@ -234,11 +242,11 @@ export class MemStorage implements IStorage {
     }
     
     // Update customer pending amount if status is pending
-    if (order.status === 'pending') {
+    if (order.status === 'pending' && newOrder.total) {
       const customer = this.customersList.get(order.customerId);
       if (customer) {
         this.updateCustomer(order.customerId, { 
-          pendingAmount: customer.pendingAmount + order.total 
+          pendingAmount: customer.pendingAmount + newOrder.total 
         });
       }
     }
@@ -290,7 +298,9 @@ export class MemStorage implements IStorage {
     const id = uuidv4();
     const newTransaction: Transaction = { 
       ...transaction, 
-      id
+      id,
+      date: transaction.date ?? new Date(),
+      description: transaction.description ?? null
     };
     this.transactionsList.set(id, newTransaction);
     
