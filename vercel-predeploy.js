@@ -14,10 +14,10 @@ if (fs.existsSync(viteTsPath)) {
   // Read the file
   let content = fs.readFileSync(viteTsPath, 'utf8');
   
-  // Replace the problematic line
+  // Replace the problematic line - try multiple potential patterns
   content = content.replace(
     /allowedHosts:\s*true/g,
-    'allowedHosts: true as true'
+    'allowedHosts: ["vercel.app", ".vercel.app"]'
   );
   
   // Write the modified content

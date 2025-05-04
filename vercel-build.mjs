@@ -29,7 +29,14 @@ if (!fs.existsSync('.vercel/output/functions/api')) {
 
 // Copy client files to vercel static output
 console.log('Copying client files to Vercel output directory...');
-fs.cpSync('dist/client', '.vercel/output/static', { recursive: true });
+// Check which directory exists and use that
+if (fs.existsSync('dist/public')) {
+  fs.cpSync('dist/public', '.vercel/output/static', { recursive: true });
+} else if (fs.existsSync('dist/client')) {
+  fs.cpSync('dist/client', '.vercel/output/static', { recursive: true });
+} else {
+  console.log('Warning: Could not find client build output. Continuing...');
+}
 
 // Generate special config file for Vercel
 const config = {

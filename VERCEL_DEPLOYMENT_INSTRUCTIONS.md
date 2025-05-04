@@ -8,11 +8,9 @@ Before deployment, ensure you've committed all the files I've added to fix TypeS
 
 - ✅ Fixed type issues in storage.ts
 - ✅ Added null checks in routes.ts
-- ✅ Created vercel.json configuration
-- ✅ Created server/vercel.ts without the problematic vite dependency
-- ✅ Added vercel-build.mjs script
+- ✅ Created vercel.json configuration - **SIMPLIFIED VERSION** 
 - ✅ Added vercel-predeploy.js script
-- ✅ Added tsconfig.vercel.json
+- ✅ Added server/serverless-helper.ts for demo data
 
 ## 2. Deploy to Vercel
 
@@ -23,15 +21,22 @@ Before deployment, ensure you've committed all the files I've added to fix TypeS
 3. Create a new project and import your GitHub repository.
 
 4. Configure the Build & Development Settings:
-   - Build Command: `node vercel-predeploy.js && npm run build`
-   - Output Directory: `dist`
-   - Install Command: `npm install`
+   - **DON'T MODIFY THE BUILD SETTINGS** - the vercel.json file will handle this
 
 5. Add the following environment variables (if needed):
    - `NODE_ENV=production`
    - Any Firebase configuration variables
 
 6. Click 'Deploy'.
+
+## Latest Updates (IMPORTANT)
+
+I've made several simplifications to make deployment easier:
+
+1. Simplified vercel.json to use a more direct approach 
+2. Fixed the path for client build output detection
+3. Modified the vite.ts fix to use an array of allowed hosts
+4. Added a serverless helper for data persistence in Vercel 
 
 ## 3. Debugging Common Issues
 
