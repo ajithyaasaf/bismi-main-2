@@ -253,15 +253,23 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           }
         }
           
-        if (customer) {
-          const currentPending = customer.pendingAmount || 0;
-          const newPending = currentPending + total;
+        if (customer && typeof customer === 'object') {
+          // Check if the customer has the expected properties
+          const id = 'id' in customer ? customer.id : 
+                    'firebaseId' in customer ? customer.firebaseId : null;
+                    
+          const pendingAmount = 'pendingAmount' in customer ? 
+                                customer.pendingAmount || 0 : 0;
           
-          console.log(`Updating customer ${customer.id} pending amount from ${currentPending} to ${newPending}`);
-          
-          await CustomerService.updateCustomer(customer.id, {
-            pendingAmount: newPending
-          });
+          if (id) {
+            const newPending = pendingAmount + total;
+            
+            console.log(`Updating customer ${id} pending amount from ${pendingAmount} to ${newPending}`);
+            
+            await CustomerService.updateCustomer(id, {
+              pendingAmount: newPending
+            });
+          }
         }
       }
       

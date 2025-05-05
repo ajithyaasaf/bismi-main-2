@@ -109,6 +109,67 @@ export async function updateSupplier(id: string, supplierData: any) {
   }
 }
 
+// Record a payment to a supplier
+export async function recordSupplierPayment(id: string, amount: number, description: string) {
+  try {
+    console.log(`Recording payment for supplier with ID: ${id}, amount: ${amount}`);
+    
+    // Import transaction service to record the payment transaction
+    const { addTransaction } = await import('./transaction-service');
+    
+    // First, get the current supplier
+    const supplierCollection = collection(db, SUPPLIERS_COLLECTION);
+    const q = query(supplierCollection, where('id', '==', id));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const supplierDoc = querySnapshot.docs[0];
+      const supplierData = supplierDoc.data();
+      const firestoreDocId = supplierDoc.id;
+      
+      // Calculate new debt (make sure it doesn't go below zero)
+      const currentDebt = supplierData.debt || 0;
+      const newDebt = Math.max(0, currentDebt - amount);
+      
+      console.log(`Updating supplier debt from ${currentDebt} to ${newDebt}`);
+      
+      // Update the supplier record
+      const supplierRef = doc(db, SUPPLIERS_COLLECTION, firestoreDocId);
+      await updateDoc(supplierRef, { 
+        debt: newDebt,
+        updatedAt: new Date()
+      });
+      
+      // Record a transaction
+      await addTransaction({
+        type: 'payment',
+        amount: amount,
+        entityId: id,
+        entityType: 'supplier',
+        date: new Date(),
+        description: description || `Payment to supplier: ${supplierData.name}`
+      });
+      
+      console.log(`Payment recorded successfully for supplier ${id}`);
+      
+      // Return the updated supplier
+      const updatedDoc = await getDoc(supplierRef);
+      if (updatedDoc.exists()) {
+        return { 
+          ...updatedDoc.data(), 
+          firebaseId: firestoreDocId
+        };
+      }
+    } else {
+      console.error(`Supplier with ID ${id} not found in Firestore`);
+      throw new Error(`Supplier with ID ${id} not found`);
+    }
+  } catch (error) {
+    console.error(`Error recording payment for supplier:`, error);
+    throw error;
+  }
+}
+
 // Delete a supplier
 export async function deleteSupplier(id: string) {
   try {
