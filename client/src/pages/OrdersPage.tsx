@@ -69,30 +69,66 @@ export default function OrdersPage() {
     try {
       // First update in Firestore
       try {
+        console.log(`Attempting to update order ${order.id} status to ${newStatus}`);
         const result = await OrderService.updateOrder(order.id, { status: newStatus });
         console.log("Order status updated in Firestore:", result);
+        
+        // If payment status is changing from pending to paid, update the customer's pending amount
+        if (newStatus === 'paid' && order.status === 'pending') {
+          console.log(`Order changed to paid, need to update customer pending amount`);
+          const customer = displayCustomers.find(c => c.id === order.customerId);
+          
+          if (customer && customer.pendingAmount) {
+            const updatedPendingAmount = Math.max(0, customer.pendingAmount - order.total);
+            console.log(`Updating customer ${customer.id} pending amount from ${customer.pendingAmount} to ${updatedPendingAmount}`);
+            
+            await CustomerService.updateCustomer(customer.id, {
+              pendingAmount: updatedPendingAmount
+            });
+          }
+        }
+        
+        // Success toast after Firestore update
+        toast({
+          title: "Order updated",
+          description: `Order status changed to ${newStatus}`,
+        });
+        
+        // Refresh local state
+        setFirestoreOrders(prev => 
+          prev.map(o => o.id === order.id ? {...o, status: newStatus} : o)
+        );
+        
+        // Refresh Firestore data after updating
+        const updatedOrders = await OrderService.getOrders();
+        setFirestoreOrders(updatedOrders);
+        
+        const updatedCustomers = await CustomerService.getCustomers();
+        setFirestoreCustomers(updatedCustomers);
       } catch (firestoreError) {
         console.error("Error updating order status in Firestore:", firestoreError);
+        
+        // Show error toast for Firestore failure
+        toast({
+          title: "Error",
+          description: "Failed to update order status in database",
+          variant: "destructive",
+        });
+        return; // Exit early if Firestore update fails
       }
       
-      // Then update via API for backward compatibility
-      await apiRequest('PUT', `/api/orders/${order.id}`, { 
-        status: newStatus 
-      });
-      
-      toast({
-        title: "Order updated",
-        description: `Order status changed to ${newStatus}`,
-      });
-      
-      // Refresh local state
-      setFirestoreOrders(prev => 
-        prev.map(o => o.id === order.id ? {...o, status: newStatus} : o)
-      );
-      
-      // Refresh API data via query cache
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      // Try to update via API for backward compatibility, but don't fail if it doesn't work
+      try {
+        await apiRequest('PUT', `/api/orders/${order.id}`, { 
+          status: newStatus 
+        });
+        // Refresh API data via query cache
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      } catch (apiError) {
+        console.error("API update failed but Firestore update succeeded:", apiError);
+        // No need to show error toast since Firestore update succeeded
+      }
     } catch (error) {
       console.error("Error during order status update:", error);
       toast({
@@ -108,25 +144,42 @@ export default function OrdersPage() {
       try {
         // First delete from Firestore
         try {
+          console.log(`Attempting to delete order ${order.id} from Firestore`);
           const result = await OrderService.deleteOrder(order.id);
           console.log(`Delete order result from Firestore: ${result ? 'Success' : 'Not found'}`);
+          
+          // Success toast after Firestore deletion
+          toast({
+            title: "Order deleted",
+            description: "The order has been successfully deleted",
+          });
+          
+          // Refresh local state
+          setFirestoreOrders(prev => prev.filter(o => o.id !== order.id));
+          
+          // Refresh Firestore data
+          const updatedOrders = await OrderService.getOrders();
+          setFirestoreOrders(updatedOrders);
         } catch (firestoreError) {
           console.error("Error deleting order from Firestore:", firestoreError);
+          // Show error toast for Firestore failure
+          toast({
+            title: "Error",
+            description: "Failed to delete order from database",
+            variant: "destructive",
+          });
+          return; // Exit early if Firestore deletion fails
         }
         
-        // Then delete via API for backward compatibility
-        await apiRequest('DELETE', `/api/orders/${order.id}`, undefined);
-        
-        toast({
-          title: "Order deleted",
-          description: "The order has been successfully deleted",
-        });
-        
-        // Refresh local state
-        setFirestoreOrders(prev => prev.filter(o => o.id !== order.id));
-        
-        // Refresh API data via query cache
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        // Try to delete via API for backward compatibility, but don't fail if it doesn't work
+        try {
+          await apiRequest('DELETE', `/api/orders/${order.id}`, undefined);
+          // Refresh API data via query cache
+          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        } catch (apiError) {
+          console.error("API deletion failed but Firestore deletion succeeded:", apiError);
+          // No need to show error toast since Firestore deletion succeeded
+        }
       } catch (error) {
         console.error("Error during order deletion:", error);
         toast({

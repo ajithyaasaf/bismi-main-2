@@ -236,9 +236,22 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       // If the order payment is pending, update customer pending amount
       if (paymentStatus === 'pending') {
         console.log('Updating customer pending amount');
-        const customer = customerType === 'hotel' 
-          ? customers.find(c => c.id === customerId)
-          : newCustomer;
+        
+        // Get the customer either from the existing list or the newly created customer
+        let customer;
+        
+        if (customerType === 'hotel') {
+          // For hotel customers, find by ID in the customers array
+          customer = customers.find(c => c.id === customerId);
+        } else {
+          // For newly created random customers, look them up by ID
+          try {
+            customer = await CustomerService.getCustomerById(orderCustomerId);
+            console.log('Retrieved newly created customer:', customer);
+          } catch (error) {
+            console.error('Failed to get newly created customer:', error);
+          }
+        }
           
         if (customer) {
           const currentPending = customer.pendingAmount || 0;

@@ -115,6 +115,36 @@ export async function updateCustomer(id: string, customerData: any) {
   }
 }
 
+// Get a customer by ID
+export async function getCustomerById(id: string) {
+  try {
+    console.log(`Getting customer from Firestore with ID: ${id}`);
+    
+    // First try to find by our custom ID
+    const customerCollection = collection(db, CUSTOMERS_COLLECTION);
+    const q = query(customerCollection, where('id', '==', id));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      const data = doc.data();
+      
+      return {
+        ...data,
+        firebaseId: doc.id,
+        // Convert Firestore timestamp to JS Date if needed
+        createdAt: data.createdAt instanceof Date ? data.createdAt : new Date()
+      };
+    }
+    
+    console.error(`Customer with ID ${id} not found in Firestore`);
+    return null;
+  } catch (error) {
+    console.error(`Error getting customer from Firestore:`, error);
+    throw error;
+  }
+}
+
 // Delete a customer
 export async function deleteCustomer(id: string) {
   try {
