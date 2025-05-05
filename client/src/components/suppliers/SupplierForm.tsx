@@ -112,7 +112,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[450px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? `Edit Supplier: ${supplier?.name}` : "Add New Supplier"}
@@ -120,34 +120,37 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+          {/* Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="name" className="text-sm font-medium sm:text-right">
               Name
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="Enter supplier name"
             />
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="contact" className="text-right">
+          {/* Contact */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="contact" className="text-sm font-medium sm:text-right">
               Contact
             </Label>
             <Input
               id="contact"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="Enter contact details"
             />
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="debt" className="text-right">
+          {/* Debt */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="debt" className="text-sm font-medium sm:text-right">
               Debt (₹)
             </Label>
             <Input
@@ -155,7 +158,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
               type="number"
               value={debt}
               onChange={(e) => setDebt(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="0.00"
               min="0"
               step="0.01"
@@ -163,13 +166,14 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-2">
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Add'}
           </Button>

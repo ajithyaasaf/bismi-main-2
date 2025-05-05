@@ -185,7 +185,7 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[450px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Add Stock</DialogTitle>
           <DialogDescription>
@@ -194,16 +194,17 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="stock-supplier" className="text-right">
+          {/* Supplier Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="stock-supplier" className="text-sm font-medium sm:text-right">
               Supplier
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <Select 
                 value={supplier} 
                 onValueChange={setSupplier}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,16 +216,17 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="stock-type" className="text-right">
+          {/* Item Type */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="stock-type" className="text-sm font-medium sm:text-right">
               Item Type
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <Select 
                 value={type} 
                 onValueChange={setType}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select item type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -236,8 +238,9 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="stock-quantity" className="text-right">
+          {/* Quantity */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="stock-quantity" className="text-sm font-medium sm:text-right">
               Quantity (kg)
             </Label>
             <Input
@@ -247,13 +250,14 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
               min="0"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="0.00"
             />
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="stock-rate" className="text-right">
+          {/* Rate */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="stock-rate" className="text-sm font-medium sm:text-right">
               Rate (₹ per kg)
             </Label>
             <Input
@@ -263,32 +267,34 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
               min="0"
               value={rate}
               onChange={(e) => setRate(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="0.00"
             />
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="stock-total" className="text-right">
+          {/* Total Amount */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="stock-total" className="text-sm font-medium sm:text-right">
               Total Amount (₹)
             </Label>
             <Input
               id="stock-total"
               type="text"
               value={total}
-              className="col-span-3"
+              className="sm:col-span-3 bg-slate-50"
               disabled
             />
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-2">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto" disabled={isSubmitting}>
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Adding...' : 'Add Stock'}
           </Button>

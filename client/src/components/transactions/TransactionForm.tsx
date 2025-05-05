@@ -130,7 +130,7 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[450px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             Add New Transaction
@@ -138,16 +138,17 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="entity-type" className="text-right">
+          {/* Entity Type */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="entity-type" className="text-sm font-medium sm:text-right">
               Entity Type
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <Select 
                 value={entityType} 
                 onValueChange={handleEntityTypeChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select entity type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,16 +159,17 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="entity" className="text-right">
+          {/* Entity Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="entity" className="text-sm font-medium sm:text-right">
               {entityType === 'supplier' ? 'Supplier' : 'Customer'}
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <Select 
                 value={entityId} 
                 onValueChange={setEntityId}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={`Select ${entityType}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,16 +181,17 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="transaction-type" className="text-right">
+          {/* Transaction Type */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="transaction-type" className="text-sm font-medium sm:text-right">
               Transaction
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <Select 
                 value={type} 
                 onValueChange={handleTypeChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select transaction type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -202,8 +205,9 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amount" className="text-right">
+          {/* Amount */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="amount" className="text-sm font-medium sm:text-right">
               Amount (₹)
             </Label>
             <Input
@@ -211,35 +215,37 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="0.00"
               min="0"
               step="0.01"
             />
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
+          {/* Description */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start gap-2 sm:gap-4">
+            <Label htmlFor="description" className="text-sm font-medium sm:text-right pt-2">
               Description
             </Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3"
               placeholder="Optional description"
               rows={3}
             />
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-2">
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Creating...' : 'Create Transaction'}
           </Button>

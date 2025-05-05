@@ -304,7 +304,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100%-1rem)] max-w-[500px] overflow-y-auto">
+      <DialogContent className="max-w-[550px] overflow-y-auto max-h-[90vh] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>New Order</DialogTitle>
           <DialogDescription>
@@ -313,8 +313,9 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
+          {/* Customer Type Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-            <Label htmlFor="customer-type" className="sm:text-right">
+            <Label htmlFor="customer-type" className="sm:text-right text-sm font-medium">
               Customer Type
             </Label>
             <div className="sm:col-span-3">
@@ -322,7 +323,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
                 value={customerType} 
                 onValueChange={setCustomerType}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select customer type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,9 +334,10 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
             </div>
           </div>
           
+          {/* Conditional Customer Fields */}
           {customerType === 'hotel' ? (
             <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-              <Label htmlFor="hotel-select" className="sm:text-right">
+              <Label htmlFor="hotel-select" className="sm:text-right text-sm font-medium">
                 Select Hotel
               </Label>
               <div className="sm:col-span-3">
@@ -343,7 +345,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
                   value={customerId} 
                   onValueChange={setCustomerId}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select hotel" />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,7 +359,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-                <Label htmlFor="customer-name" className="sm:text-right">
+                <Label htmlFor="customer-name" className="sm:text-right text-sm font-medium">
                   Customer Name
                 </Label>
                 <Input
@@ -370,7 +372,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-                <Label htmlFor="customer-phone" className="sm:text-right">
+                <Label htmlFor="customer-phone" className="sm:text-right text-sm font-medium">
                   Phone Number
                 </Label>
                 <Input
@@ -386,93 +388,106 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           
           <Separator className="my-2" />
           
-          <div>
-            <h4 className="text-sm font-medium mb-2">Order Items</h4>
+          {/* Order Items Section */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium mb-3">Order Items</h4>
             
-            {items.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-12 gap-2 mb-3 items-end sm:mb-2">
-                <div className="col-span-5">
-                  <Label htmlFor={`item-type-${item.id}`} className="text-xs">Item</Label>
-                  <Select 
-                    value={item.type} 
-                    onValueChange={(value) => updateItemType(item.id, value)}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {itemTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-3">
-                  <Label htmlFor={`item-qty-${item.id}`} className="text-xs">Qty (kg)</Label>
-                  <Input
-                    id={`item-qty-${item.id}`}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="col-span-3">
-                  <Label htmlFor={`item-rate-${item.id}`} className="text-xs">Rate (₹)</Label>
-                  <Input
-                    id={`item-rate-${item.id}`}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={item.rate}
-                    onChange={(e) => updateItem(item.id, 'rate', e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="col-span-1 flex justify-center">
-                  {index === 0 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full"
-                      onClick={addItem}
+            <div className="max-h-[300px] overflow-y-auto pr-1 space-y-3">
+              {items.map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className="grid grid-cols-12 gap-2 items-end pb-3 border-b border-gray-100 last:border-0"
+                >
+                  <div className="col-span-12 sm:col-span-5">
+                    <Label htmlFor={`item-type-${item.id}`} className="text-xs mb-1 block">Item</Label>
+                    <Select 
+                      value={item.type} 
+                      onValueChange={(value) => updateItemType(item.id, value)}
                     >
-                      <i className="fas fa-plus text-xs"></i>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <i className="fas fa-minus text-xs"></i>
-                    </Button>
-                  )}
+                      <SelectTrigger className="h-9 text-sm w-full">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {itemTypes.map(type => (
+                          <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="col-span-5 sm:col-span-3">
+                    <Label htmlFor={`item-qty-${item.id}`} className="text-xs mb-1 block">Qty (kg)</Label>
+                    <Input
+                      id={`item-qty-${item.id}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  
+                  <div className="col-span-5 sm:col-span-3">
+                    <Label htmlFor={`item-rate-${item.id}`} className="text-xs mb-1 block">Rate (₹)</Label>
+                    <Input
+                      id={`item-rate-${item.id}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={item.rate}
+                      onChange={(e) => updateItem(item.id, 'rate', e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2 sm:col-span-1 flex justify-center items-center">
+                    {index === 0 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        onClick={addItem}
+                        title="Add item"
+                      >
+                        <i className="fas fa-plus"></i>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => removeItem(item.id)}
+                        title="Remove item"
+                      >
+                        <i className="fas fa-minus"></i>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             
-            <div className="mt-4 bg-slate-50 p-3 rounded-md">
+            {/* Total Amount */}
+            <div className="mt-4 bg-slate-50 p-4 rounded-md">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-700">Total Amount:</span>
                 <span className="text-lg font-bold text-gray-900">₹{calculateTotal().toFixed(2)}</span>
               </div>
             </div>
             
+            {/* Payment Status */}
             <div className="mt-4">
-              <Label htmlFor="payment-status" className="block text-sm font-medium mb-1">
+              <Label htmlFor="payment-status" className="block text-sm font-medium mb-2">
                 Payment Status
               </Label>
               <Select 
                 value={paymentStatus} 
                 onValueChange={setPaymentStatus}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select payment status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -484,13 +499,14 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-2">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto" disabled={isSubmitting}>
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Creating...' : 'Create Order'}
           </Button>
