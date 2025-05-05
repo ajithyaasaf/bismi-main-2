@@ -2,23 +2,15 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
-// Function to initialize Firebase Admin
+// Function to initialize Firebase Admin with better Vercel compatibility
 const initializeFirebaseAdmin = () => {
   try {
     // Check if Firebase Admin is already initialized
     if (getApps().length === 0) {
-      // Initialize Firebase Admin
+      // For Vercel deployment - simplified initialization
+      // This works well with Vercel's environment and doesn't require a service account
       const app = initializeApp({
-        // Use environment variables in production and default values for development
-        projectId: process.env.FIREBASE_PROJECT_ID || 'bismi-broilers-3ca96',
-        // If credentials are provided, use them, otherwise use default credentials
-        ...(process.env.FIREBASE_PRIVATE_KEY && {
-          credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-          })
-        })
+        projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'bismi-broilers-3ca96',
       });
       
       console.log('Firebase Admin initialized successfully');

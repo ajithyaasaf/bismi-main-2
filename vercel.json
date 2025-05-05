@@ -1,28 +1,26 @@
 {
   "version": 2,
-  "outputDirectory": "dist/public",
   "builds": [
     {
-      "src": "api/*.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
+      "src": "build-for-vercel.js",
+      "use": "@vercel/node",
       "config": {
         "distDir": "dist/public"
       }
     }
   ],
   "routes": [
-    { "src": "/api/suppliers", "dest": "/api/suppliers.ts" },
-    { "src": "/api/inventory", "dest": "/api/inventory.ts" },
-    { "src": "/api/customers", "dest": "/api/customers.ts" },
-    { "src": "/api/orders", "dest": "/api/orders.ts" },
-    { "src": "/api/transactions", "dest": "/api/transactions.ts" },
-    { "src": "/api/reports", "dest": "/api/reports.ts" },
-    { "src": "/api/hello", "dest": "/api/hello.ts" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/public/$1"
+    }
+  ],
+  "env": {
+    "USE_FIRESTORE": "true",
+    "FIREBASE_PROJECT_ID": "bismi-broilers-3ca96"
+  }
 }
