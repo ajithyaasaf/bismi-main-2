@@ -1,4 +1,4 @@
-import { db, auth } from './firebase';
+import { db } from './firebase';
 import { 
   collection, 
   addDoc, 
@@ -10,28 +10,14 @@ import {
   query,
   where,
   serverTimestamp,
-  connectFirestoreEmulator,
   setLogLevel
 } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 // Enable Firestore logs in development to help debug
 if (import.meta.env.DEV) {
   setLogLevel('debug');
 }
-
-// Sign in anonymously to allow write access
-const ensureAuthenticated = async () => {
-  try {
-    if (!auth.currentUser) {
-      await signInAnonymously(auth);
-      console.log("Signed in anonymously to Firebase");
-    }
-  } catch (error) {
-    console.error("Error signing in anonymously:", error);
-  }
-};
 
 // Collection name for customers
 const CUSTOMERS_COLLECTION = 'customers';
@@ -40,9 +26,6 @@ const CUSTOMERS_COLLECTION = 'customers';
 export async function addCustomer(customerData: any) {
   try {
     console.log('Adding customer to Firestore:', customerData);
-    
-    // Ensure we're authenticated with Firebase
-    await ensureAuthenticated();
     
     // Add a custom ID and timestamps
     const documentData = {
@@ -70,9 +53,6 @@ export async function getCustomers() {
   try {
     console.log('Getting all customers from Firestore');
     
-    // Ensure we're authenticated with Firebase
-    await ensureAuthenticated();
-    
     const customerCollection = collection(db, CUSTOMERS_COLLECTION);
     const querySnapshot = await getDocs(customerCollection);
     
@@ -98,9 +78,6 @@ export async function getCustomers() {
 export async function updateCustomer(id: string, customerData: any) {
   try {
     console.log(`Updating customer in Firestore with ID: ${id}`, customerData);
-    
-    // Ensure we're authenticated with Firebase
-    await ensureAuthenticated();
     
     // First try to find by our custom ID
     const customerCollection = collection(db, CUSTOMERS_COLLECTION);
@@ -142,9 +119,6 @@ export async function updateCustomer(id: string, customerData: any) {
 export async function deleteCustomer(id: string) {
   try {
     console.log(`Deleting customer from Firestore with ID: ${id}`);
-    
-    // Ensure we're authenticated with Firebase
-    await ensureAuthenticated();
     
     // First try to find by our custom ID
     const customerCollection = collection(db, CUSTOMERS_COLLECTION);
