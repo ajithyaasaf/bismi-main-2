@@ -7,6 +7,7 @@ import { getAuth } from "firebase/auth";
 const firebaseConfig = {
   apiKey: "AIzaSyA3f4gJOKZDIjy9gnhSSpMVLs1UblGxo0s",
   authDomain: "bismi-broilers-3ca96.firebaseapp.com",
+  databaseURL: "https://bismi-broilers-3ca96-default-rtdb.firebaseio.com",
   projectId: "bismi-broilers-3ca96",
   storageBucket: "bismi-broilers-3ca96.firebasestorage.app",
   messagingSenderId: "949430744092",
