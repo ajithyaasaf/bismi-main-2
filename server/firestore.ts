@@ -1,35 +1,101 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp as initializeAdminApp, cert, getApps, App } from 'firebase-admin/app';
+import { getFirestore as getAdminFirestore, Timestamp, FieldValue, Firestore as AdminFirestore } from 'firebase-admin/firestore';
+import * as firebase from 'firebase/app';
+import { FirebaseApp } from 'firebase/app';
+import { getFirestore as getClientFirestore, Firestore as ClientFirestore } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
-// Function to initialize Firebase Admin with better Vercel compatibility
-const initializeFirebaseAdmin = () => {
+// Create a type that can represent either admin or client Firestore
+type FirestoreDB = AdminFirestore | ClientFirestore;
+
+// Function to initialize Firebase - try Admin first, then fall back to client SDK
+const initializeFirebase = () => {
   try {
-    // Check if Firebase Admin is already initialized
+    // First, try to initialize Firebase Admin SDK
     if (getApps().length === 0) {
       // For Vercel deployment - simplified initialization
-      // This works well with Vercel's environment and doesn't require a service account
-      const app = initializeApp({
+      const adminApp = initializeAdminApp({
         projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'bismi-broilers-3ca96',
       });
       
-      console.log('Firebase Admin initialized successfully');
-      return app;
+      console.log('Firebase Admin SDK initialized successfully');
+      return {
+        app: adminApp,
+        isAdmin: true
+      };
     } else {
-      console.log('Firebase Admin already initialized');
-      return getApps()[0];
+      console.log('Firebase Admin SDK already initialized');
+      return {
+        app: getApps()[0],
+        isAdmin: true
+      };
     }
-  } catch (error) {
-    console.error('Error initializing Firebase Admin:', error);
-    return null;
+  } catch (adminError) {
+    console.warn('Failed to initialize Firebase Admin SDK:', adminError);
+    console.log('Falling back to Firebase Web SDK');
+    
+    // Fall back to initializing Firebase Web SDK
+    try {
+      // Check if Firebase Web SDK is already initialized
+      if (!firebase.getApps().length) {
+        const firebaseConfig = {
+          apiKey: process.env.VITE_FIREBASE_API_KEY || "AIzaSyA3f4gJOKZDIjy9gnhSSpMVLs1UblGxo0s",
+          authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "bismi-broilers-3ca96.firebaseapp.com",
+          databaseURL: process.env.VITE_FIREBASE_DATABASE_URL || "https://bismi-broilers-3ca96-default-rtdb.firebaseio.com",
+          projectId: process.env.VITE_FIREBASE_PROJECT_ID || "bismi-broilers-3ca96",
+          storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "bismi-broilers-3ca96.firebasestorage.app",
+          messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "949430744092",
+          appId: process.env.VITE_FIREBASE_APP_ID || "1:949430744092:web:4ea5638a9d38ba3e76dbd9"
+        };
+        
+        const clientApp = firebase.initializeApp(firebaseConfig);
+        console.log('Firebase Web SDK initialized successfully');
+        return {
+          app: clientApp,
+          isAdmin: false
+        };
+      } else {
+        console.log('Firebase Web SDK already initialized');
+        return {
+          app: firebase.getApp(),
+          isAdmin: false
+        };
+      }
+    } catch (clientError) {
+      console.error('Failed to initialize Firebase Web SDK:', clientError);
+      return {
+        app: null,
+        isAdmin: false
+      };
+    }
   }
 };
 
-// Initialize Firebase Admin
-const app = initializeFirebaseAdmin();
+// Initialize Firebase
+const { app, isAdmin } = initializeFirebase();
 
-// Initialize Firestore if Firebase Admin was initialized successfully
-const db = app ? getFirestore(app) : null;
+// Initialize Firestore based on which initialization method worked
+let db: FirestoreDB | null = null;
+if (app) {
+  if (isAdmin) {
+    db = getAdminFirestore(app as App);
+  } else {
+    db = getClientFirestore(app as FirebaseApp);
+  }
+}
+
+// Log initialization status
+console.log(`Firebase initialized (using ${isAdmin ? 'Admin SDK' : 'Web SDK'})`);
+console.log(`Firestore database ${db ? 'connected' : 'not available'}`);
+
+// Timesteamp creation helper that works with both Admin and Web SDKs
+const createTimestamp = () => {
+  if (isAdmin) {
+    return Timestamp.now();
+  } else {
+    return new Date();
+  }
+};
 
 // Collection names
 export const COLLECTIONS = {
@@ -153,7 +219,7 @@ export async function deleteDocument(collection: string, id: string): Promise<bo
 export async function queryDocuments<T>(
   collection: string, 
   field: string, 
-  operator: FirebaseFirestore.WhereFilterOp, 
+  operator: any, // Using any type to accommodate both SDKs
   value: any
 ): Promise<T[]> {
   if (!isFirestoreAvailable || !db) {

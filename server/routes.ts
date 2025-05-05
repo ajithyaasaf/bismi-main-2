@@ -12,8 +12,8 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Use Firestore storage if environment variable is set and we're not in development mode
-const useFirestore = process.env.USE_FIRESTORE === "true" && process.env.NODE_ENV !== "development";
+// Use Firestore storage if environment variable is set
+const useFirestore = process.env.USE_FIRESTORE === "true";
 const db = useFirestore ? firestoreStorage : storage;
 
 console.log(`Using ${useFirestore ? 'Firestore' : 'in-memory'} storage...`);
