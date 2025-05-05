@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import * as SupplierService from "@/lib/supplier-service"; // Import Supplier Firestore service
 
 interface SupplierFormProps {
   supplier: Supplier | null;
@@ -57,15 +58,33 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
       };
       
       if (isEditing && supplier) {
-        // Update existing supplier
+        // First update directly in Firestore
+        try {
+          await SupplierService.updateSupplier(supplier.id, supplierData);
+          console.log("Supplier updated in Firestore successfully");
+        } catch (firestoreError) {
+          console.error("Error updating supplier in Firestore:", firestoreError);
+        }
+        
+        // Then update via API for backward compatibility
         await apiRequest('PUT', `/api/suppliers/${supplier.id}`, supplierData);
+        
         toast({
           title: "Supplier updated",
           description: `${name} has been updated successfully`,
         });
       } else {
-        // Create new supplier
+        // First create directly in Firestore
+        try {
+          const newSupplier = await SupplierService.addSupplier(supplierData);
+          console.log("Supplier added to Firestore successfully:", newSupplier);
+        } catch (firestoreError) {
+          console.error("Error adding supplier to Firestore:", firestoreError);
+        }
+        
+        // Then create via API for backward compatibility
         await apiRequest('POST', '/api/suppliers', supplierData);
+        
         toast({
           title: "Supplier added",
           description: `${name} has been added successfully`,
@@ -78,6 +97,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
       // Close modal
       onClose();
     } catch (error) {
+      console.error("Error in supplier form submission:", error);
       toast({
         title: "Error",
         description: isEditing 
