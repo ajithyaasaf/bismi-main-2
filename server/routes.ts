@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { firestoreStorage } from "./firestore-storage"; // Import Firestore storage
 import { v4 as uuidv4 } from 'uuid';
 import { 
   insertSupplierSchema, 
@@ -11,6 +12,9 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+// Use Firestore storage if environment variable is set
+const db = process.env.USE_FIRESTORE === "true" ? firestoreStorage : storage;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
   const apiRouter = express.Router();
@@ -19,16 +23,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Supplier routes
   apiRouter.get("/suppliers", async (req: Request, res: Response) => {
     try {
-      const suppliers = await storage.getAllSuppliers();
+      const suppliers = await db.getAllSuppliers();
       res.json(suppliers);
     } catch (error) {
+      console.error("Failed to fetch suppliers:", error);
       res.status(500).json({ message: "Failed to fetch suppliers" });
     }
   });
 
   apiRouter.get("/suppliers/:id", async (req: Request, res: Response) => {
     try {
-      const supplier = await storage.getSupplier(req.params.id);
+      const supplier = await db.getSupplier(req.params.id);
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
@@ -41,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/suppliers", async (req: Request, res: Response) => {
     try {
       const supplierData = insertSupplierSchema.parse(req.body);
-      const supplier = await storage.createSupplier(supplierData);
+      const supplier = await db.createSupplier(supplierData);
       res.status(201).json(supplier);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -54,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/suppliers/:id", async (req: Request, res: Response) => {
     try {
       const supplierData = insertSupplierSchema.partial().parse(req.body);
-      const updatedSupplier = await storage.updateSupplier(req.params.id, supplierData);
+      const updatedSupplier = await db.updateSupplier(req.params.id, supplierData);
       if (!updatedSupplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
@@ -69,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.delete("/suppliers/:id", async (req: Request, res: Response) => {
     try {
-      const success = await storage.deleteSupplier(req.params.id);
+      const success = await db.deleteSupplier(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Supplier not found" });
       }
@@ -86,13 +91,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid payment amount" });
       }
 
-      const supplier = await storage.getSupplier(req.params.id);
+      const supplier = await db.getSupplier(req.params.id);
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
 
       // Create a payment transaction
-      const transaction = await storage.createTransaction({
+      const transaction = await db.createTransaction({
         entityId: req.params.id,
         entityType: 'supplier',
         amount,
@@ -110,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Inventory routes
   apiRouter.get("/inventory", async (req: Request, res: Response) => {
     try {
-      const inventory = await storage.getAllInventory();
+      const inventory = await db.getAllInventory();
       res.json(inventory);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch inventory" });
@@ -119,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/inventory/:id", async (req: Request, res: Response) => {
     try {
-      const item = await storage.getInventoryItem(req.params.id);
+      const item = await db.getInventoryItem(req.params.id);
       if (!item) {
         return res.status(404).json({ message: "Inventory item not found" });
       }
@@ -132,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/inventory", async (req: Request, res: Response) => {
     try {
       const itemData = insertInventorySchema.parse(req.body);
-      const item = await storage.createInventoryItem(itemData);
+      const item = await db.createInventoryItem(itemData);
       res.status(201).json(item);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -145,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/inventory/:id", async (req: Request, res: Response) => {
     try {
       const itemData = insertInventorySchema.partial().parse(req.body);
-      const updatedItem = await storage.updateInventoryItem(req.params.id, itemData);
+      const updatedItem = await db.updateInventoryItem(req.params.id, itemData);
       if (!updatedItem) {
         return res.status(404).json({ message: "Inventory item not found" });
       }
@@ -160,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.delete("/inventory/:id", async (req: Request, res: Response) => {
     try {
-      const success = await storage.deleteInventoryItem(req.params.id);
+      const success = await db.deleteInventoryItem(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Inventory item not found" });
       }
@@ -173,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer routes
   apiRouter.get("/customers", async (req: Request, res: Response) => {
     try {
-      const customers = await storage.getAllCustomers();
+      const customers = await db.getAllCustomers();
       res.json(customers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch customers" });
@@ -182,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/customers/:id", async (req: Request, res: Response) => {
     try {
-      const customer = await storage.getCustomer(req.params.id);
+      const customer = await db.getCustomer(req.params.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -195,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/customers", async (req: Request, res: Response) => {
     try {
       const customerData = insertCustomerSchema.parse(req.body);
-      const customer = await storage.createCustomer(customerData);
+      const customer = await db.createCustomer(customerData);
       res.status(201).json(customer);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -208,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/customers/:id", async (req: Request, res: Response) => {
     try {
       const customerData = insertCustomerSchema.partial().parse(req.body);
-      const updatedCustomer = await storage.updateCustomer(req.params.id, customerData);
+      const updatedCustomer = await db.updateCustomer(req.params.id, customerData);
       if (!updatedCustomer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -223,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.delete("/customers/:id", async (req: Request, res: Response) => {
     try {
-      const success = await storage.deleteCustomer(req.params.id);
+      const success = await db.deleteCustomer(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -240,13 +245,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid payment amount" });
       }
 
-      const customer = await storage.getCustomer(req.params.id);
+      const customer = await db.getCustomer(req.params.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
 
       // Create a receipt transaction
-      const transaction = await storage.createTransaction({
+      const transaction = await db.createTransaction({
         entityId: req.params.id,
         entityType: 'customer',
         amount,
@@ -268,9 +273,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let orders;
       
       if (customerId) {
-        orders = await storage.getOrdersByCustomer(customerId);
+        orders = await db.getOrdersByCustomer(customerId);
       } else {
-        orders = await storage.getAllOrders();
+        orders = await db.getAllOrders();
       }
       
       res.json(orders);
@@ -281,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/orders/:id", async (req: Request, res: Response) => {
     try {
-      const order = await storage.getOrder(req.params.id);
+      const order = await db.getOrder(req.params.id);
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
@@ -296,14 +301,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderData = insertOrderSchema.parse(req.body);
       
       // Verify customer exists
-      const customer = await storage.getCustomer(orderData.customerId);
+      const customer = await db.getCustomer(orderData.customerId);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
       
       // Verify inventory has enough stock
       for (const item of orderData.items) {
-        const inventoryItems = await storage.getAllInventory();
+        const inventoryItems = await db.getAllInventory();
         const inventoryItem = inventoryItems.find(inv => inv.type === item.type);
         
         if (!inventoryItem) {
@@ -317,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const order = await storage.createOrder(orderData);
+      const order = await db.createOrder(orderData);
       res.status(201).json(order);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -330,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/orders/:id", async (req: Request, res: Response) => {
     try {
       const orderData = insertOrderSchema.partial().parse(req.body);
-      const updatedOrder = await storage.updateOrder(req.params.id, orderData);
+      const updatedOrder = await db.updateOrder(req.params.id, orderData);
       if (!updatedOrder) {
         return res.status(404).json({ message: "Order not found" });
       }
@@ -345,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.delete("/orders/:id", async (req: Request, res: Response) => {
     try {
-      const success = await storage.deleteOrder(req.params.id);
+      const success = await db.deleteOrder(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Order not found" });
       }
@@ -362,9 +367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let transactions;
       
       if (entityId) {
-        transactions = await storage.getTransactionsByEntity(entityId);
+        transactions = await db.getTransactionsByEntity(entityId);
       } else {
-        transactions = await storage.getAllTransactions();
+        transactions = await db.getAllTransactions();
       }
       
       res.json(transactions);
@@ -375,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/transactions/:id", async (req: Request, res: Response) => {
     try {
-      const transaction = await storage.getTransaction(req.params.id);
+      const transaction = await db.getTransaction(req.params.id);
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
       }
@@ -388,7 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/transactions", async (req: Request, res: Response) => {
     try {
       const transactionData = insertTransactionSchema.parse(req.body);
-      const transaction = await storage.createTransaction(transactionData);
+      const transaction = await db.createTransaction(transactionData);
       res.status(201).json(transaction);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -410,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       switch (reportType) {
         case 'sales':
           // Get all orders within date range
-          const orders = await storage.getAllOrders();
+          const orders = await db.getAllOrders();
           const filteredOrders = orders.filter(order => {
             // Skip orders with null dates or handle them as needed
             if (!order.date) return false;
@@ -428,8 +433,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
         case 'debts':
           // Get all suppliers and customers with debts
-          const suppliers = await storage.getAllSuppliers();
-          const customers = await storage.getAllCustomers();
+          const suppliers = await db.getAllSuppliers();
+          const customers = await db.getAllCustomers();
           
           report = {
             totalSupplierDebt: suppliers.reduce((sum, supplier) => sum + supplier.debt, 0),
