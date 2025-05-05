@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import * as InventoryService from '@/lib/inventory-service';
+import * as SupplierService from '@/lib/supplier-service';
+import * as TransactionService from '@/lib/transaction-service';
 
 interface AddStockModalProps {
   isOpen: boolean;
@@ -99,42 +102,59 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
       
       setIsSubmitting(true);
       
-      // 1. Check if inventory item already exists
-      const inventory = await queryClient.fetchQuery({
-        queryKey: ['/api/inventory'],
-        queryFn: async () => {
-          const res = await fetch('/api/inventory');
-          return res.json();
-        }
-      });
+      // 1. Fetch current inventory items from Firestore
+      const inventoryItems = await InventoryService.getInventoryItems();
+      console.log('Retrieved inventory items from Firestore:', inventoryItems);
       
-      const existingItem = inventory.find((item: any) => item.type === type);
+      const existingItem = inventoryItems.find((item: any) => item.type === type);
       
-      // 2. Update inventory
+      // 2. Update or add inventory in Firestore
+      let inventoryResult;
       if (existingItem) {
-        // Update existing inventory
-        await apiRequest('PUT', `/api/inventory/${existingItem.id}`, {
+        // Update existing inventory in Firestore
+        console.log(`Updating existing inventory item: ${existingItem.id}`);
+        inventoryResult = await InventoryService.updateInventoryItem(existingItem.id, {
           quantity: existingItem.quantity + qtyNum,
           rate: rateNum // Update with latest rate
         });
       } else {
-        // Create new inventory item
-        await apiRequest('POST', '/api/inventory', {
+        // Create new inventory item in Firestore
+        console.log('Creating new inventory item');
+        inventoryResult = await InventoryService.addInventoryItem({
           type,
           quantity: qtyNum,
           rate: rateNum
         });
       }
       
-      // 3. Update supplier debt
+      console.log('Inventory operation result:', inventoryResult);
+      
+      // 3. Update supplier debt in Firestore
       const selectedSupplier = suppliers.find(s => s.id === supplier);
       if (selectedSupplier) {
         const totalAmount = qtyNum * rateNum;
-        const newDebt = selectedSupplier.debt + totalAmount;
+        const currentDebt = selectedSupplier.debt || 0;
+        const newDebt = currentDebt + totalAmount;
         
-        await apiRequest('PUT', `/api/suppliers/${supplier}`, {
+        console.log(`Updating supplier ${supplier} debt from ${currentDebt} to ${newDebt}`);
+        
+        // Update supplier in Firestore
+        const supplierResult = await SupplierService.updateSupplier(supplier, {
           debt: newDebt
         });
+        
+        console.log('Supplier update result:', supplierResult);
+        
+        // Also create a transaction record
+        const transactionResult = await TransactionService.addTransaction({
+          type: 'expense',
+          amount: totalAmount,
+          entityId: supplier,
+          entityType: 'supplier',
+          description: `Stock purchase: ${qtyNum} kg of ${type} at ₹${rateNum}/kg`
+        });
+        
+        console.log('Transaction created:', transactionResult);
       }
       
       // Show success message
