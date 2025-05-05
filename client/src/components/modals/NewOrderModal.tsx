@@ -9,6 +9,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Customer, Inventory, OrderItem } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { Separator } from "@/components/ui/separator";
+import * as OrderService from '@/lib/order-service';
+import * as CustomerService from '@/lib/customer-service';
+import * as InventoryService from '@/lib/inventory-service';
 
 interface NewOrderModalProps {
   isOpen: boolean;
@@ -133,14 +136,16 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           return;
         }
         
-        // Create new customer
-        const newCustomer = await apiRequest('POST', '/api/customers', {
+        // Create new customer using Firestore directly
+        console.log('Creating new random customer in Firestore');
+        const newCustomer = await CustomerService.addCustomer({
           name: customerName,
           type: 'random',
           contact: customerPhone,
           pendingAmount: 0
         });
         
+        console.log('New customer created:', newCustomer);
         orderCustomerId = newCustomer.id;
       }
       
@@ -200,8 +205,9 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       // Calculate total
       const total = calculateTotal();
       
-      // Create order
-      await apiRequest('POST', '/api/orders', {
+      // Create order using Firestore service directly
+      console.log('Creating order in Firestore with date as JS Date object');
+      const newOrder = await OrderService.addOrder({
         customerId: orderCustomerId,
         items: validItems,
         date: new Date(),
@@ -209,6 +215,42 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         status: paymentStatus,
         type: customerType
       });
+      
+      console.log('New order created:', newOrder);
+      
+      // Update inventory based on order items
+      console.log('Updating inventory based on order items');
+      
+      for (const item of validItems) {
+        const inventoryItem = inventory.find(i => i.type === item.type);
+        if (inventoryItem) {
+          const newQuantity = inventoryItem.quantity - item.quantity;
+          console.log(`Updating ${item.type} inventory from ${inventoryItem.quantity} to ${newQuantity}`);
+          
+          await InventoryService.updateInventoryItem(inventoryItem.id, {
+            quantity: newQuantity
+          });
+        }
+      }
+      
+      // If the order payment is pending, update customer pending amount
+      if (paymentStatus === 'pending') {
+        console.log('Updating customer pending amount');
+        const customer = customerType === 'hotel' 
+          ? customers.find(c => c.id === customerId)
+          : newCustomer;
+          
+        if (customer) {
+          const currentPending = customer.pendingAmount || 0;
+          const newPending = currentPending + total;
+          
+          console.log(`Updating customer ${customer.id} pending amount from ${currentPending} to ${newPending}`);
+          
+          await CustomerService.updateCustomer(customer.id, {
+            pendingAmount: newPending
+          });
+        }
+      }
       
       // Show success message
       toast({
