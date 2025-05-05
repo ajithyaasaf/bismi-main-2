@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import * as InventoryService from "@/lib/inventory-service";
 
 interface InventoryFormProps {
   item: Inventory | null;
@@ -78,15 +79,33 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
       };
       
       if (isEditing && item) {
-        // Update existing item
+        // First update directly in Firestore
+        try {
+          await InventoryService.updateInventoryItem(item.id, itemData);
+          console.log("Inventory item updated in Firestore successfully");
+        } catch (firestoreError) {
+          console.error("Error updating inventory item in Firestore:", firestoreError);
+        }
+        
+        // Then update via API for backward compatibility
         await apiRequest('PUT', `/api/inventory/${item.id}`, itemData);
+        
         toast({
           title: "Inventory updated",
           description: `${type} has been updated successfully`,
         });
       } else {
-        // Create new item
+        // First create directly in Firestore
+        try {
+          const newItem = await InventoryService.addInventoryItem(itemData);
+          console.log("Inventory item added to Firestore successfully:", newItem);
+        } catch (firestoreError) {
+          console.error("Error adding inventory item to Firestore:", firestoreError);
+        }
+        
+        // Then create via API for backward compatibility
         await apiRequest('POST', '/api/inventory', itemData);
+        
         toast({
           title: "Item added",
           description: `${type} has been added to inventory`,
@@ -99,6 +118,7 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
       // Close modal
       onClose();
     } catch (error) {
+      console.error("Error in inventory form submission:", error);
       toast({
         title: "Error",
         description: isEditing 

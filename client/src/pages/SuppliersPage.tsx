@@ -138,6 +138,19 @@ export default function SuppliersPage() {
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
+    
+    // Refresh Firestore data
+    async function refreshFirestoreSuppliers() {
+      try {
+        const suppliers = await SupplierService.getSuppliers();
+        console.log("Refreshed suppliers from Firestore:", suppliers);
+        setFirestoreSuppliers(suppliers);
+      } catch (error) {
+        console.error("Error refreshing suppliers from Firestore:", error);
+      }
+    }
+    
+    refreshFirestoreSuppliers();
   };
 
   // Determine which suppliers to display
