@@ -261,7 +261,13 @@ export async function ensureCollectionsExist() {
 
 // Call this function when the server starts
 if (isFirestoreAvailable) {
-  ensureCollectionsExist().catch(console.error);
+  ensureCollectionsExist().catch(error => {
+    console.error('Error initializing Firestore collections:', error);
+    console.warn('Due to Firestore initialization error, falling back to in-memory storage');
+    // Mark Firestore as unavailable when initialization fails
+    // This will be used in routes.ts to fallback to in-memory storage
+    (global as any).FIRESTORE_FAILED = true;
+  });
 } else {
   console.warn('Firestore not available, using in-memory storage instead');
 }

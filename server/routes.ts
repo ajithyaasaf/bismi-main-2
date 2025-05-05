@@ -12,11 +12,21 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Use Firestore storage if environment variable is set
-const useFirestore = process.env.USE_FIRESTORE === "true";
+// Use Firestore storage if environment variable is set and no initialization failure
+const useFirestore = process.env.USE_FIRESTORE === "true" && !(global as any).FIRESTORE_FAILED;
 const db = useFirestore ? firestoreStorage : storage;
 
 console.log(`Using ${useFirestore ? 'Firestore' : 'in-memory'} storage...`);
+
+// Function to check and get proper storage instance at runtime
+// This provides an additional fallback in case Firestore fails during operation
+function getStorage() {
+  // If Firestore was marked as failed globally, always use in-memory storage
+  if ((global as any).FIRESTORE_FAILED) {
+    return storage;
+  }
+  return db;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -203,12 +213,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/customers", async (req: Request, res: Response) => {
     try {
       const customerData = insertCustomerSchema.parse(req.body);
-      const customer = await db.createCustomer(customerData);
+      
+      // Use the getStorage function for better fallback behavior
+      const storage = getStorage();
+      
+      // For debugging - log the storage type and customer data
+      console.log(`Creating customer using ${useFirestore ? 'Firestore' : 'in-memory'} storage`);
+      console.log('Customer data:', customerData);
+      
+      const customer = await storage.createCustomer(customerData);
+      console.log('Customer created:', customer);
+      
       res.status(201).json(customer);
     } catch (error) {
+      console.error("Error creating customer:", error);
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid customer data", errors: error.errors });
       }
+      
+      // Try fallback to in-memory storage if Firestore fails
+      if (useFirestore) {
+        try {
+          console.log("Firestore failed, falling back to in-memory storage");
+          const customer = await storage.createCustomer(req.body);
+          return res.status(201).json(customer);
+        } catch (fallbackError) {
+          console.error("Fallback also failed:", fallbackError);
+        }
+      }
+      
       res.status(500).json({ message: "Failed to create customer" });
     }
   });
