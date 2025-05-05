@@ -94,13 +94,9 @@ export default function SuppliersPage() {
     }
 
     try {
-      // First use the API for payment
-      await apiRequest('POST', `/api/suppliers/${supplierId}/payment`, { 
-        amount,
-        description: `Payment to supplier: ${supplierName}`
-      });
+      console.log(`Processing payment for supplier ${supplierId} (${supplierName}): ${amount}`);
       
-      // Then manually create a transaction in Firestore directly
+      // First add the transaction directly to Firestore
       try {
         const transactionData = {
           type: 'payment',
@@ -115,15 +111,47 @@ export default function SuppliersPage() {
         const TransactionService = await import('@/lib/transaction-service');
         const result = await TransactionService.addTransaction(transactionData);
         console.log("Transaction added to Firestore successfully:", result);
+        
+        // Also update the supplier's debt in Firestore
+        const supplier = firestoreSuppliers.find(s => s.id === supplierId);
+        if (supplier) {
+          const currentDebt = supplier.debt || 0;
+          const newDebt = Math.max(0, currentDebt - amount);
+          
+          // Update supplier debt in Firestore
+          const updateResult = await SupplierService.updateSupplier(supplierId, { 
+            debt: newDebt
+          });
+          console.log("Supplier debt updated in Firestore:", updateResult);
+        }
+        
+        // Show success immediately since Firestore operation succeeded
+        toast({
+          title: "Payment recorded",
+          description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded`,
+        });
       } catch (firestoreError) {
-        console.error("Error adding transaction to Firestore:", firestoreError);
+        console.error("Error handling payment in Firestore:", firestoreError);
+        // Continue to API as fallback
       }
       
-      toast({
-        title: "Payment recorded",
-        description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded`,
-      });
+      // Then also try the API for backwards compatibility
+      try {
+        await apiRequest('POST', `/api/suppliers/${supplierId}/payment`, { 
+          amount,
+          description: `Payment to supplier: ${supplierName}`
+        });
+        console.log("Payment also recorded via API");
+      } catch (apiError) {
+        console.error("API payment failed, but Firestore operation may have succeeded:", apiError);
+        // We already showed success toast if Firestore succeeded, so no need to show error here
+      }
       
+      // Refresh local state after payment
+      const refreshedSuppliers = await SupplierService.getSuppliers();
+      setFirestoreSuppliers(refreshedSuppliers);
+      
+      // Refresh API data via query cache
       queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     } catch (error) {
