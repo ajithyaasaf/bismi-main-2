@@ -20,7 +20,7 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
   const [name, setName] = useState(customer?.name || "");
   const [type, setType] = useState(customer?.type || "hotel");
   const [contact, setContact] = useState(customer?.contact || "");
-  const [pendingAmount, setPendingAmount] = useState(customer?.pendingAmount.toString() || "0");
+  const [pendingAmount, setPendingAmount] = useState(customer?.pendingAmount?.toString() || "0");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
