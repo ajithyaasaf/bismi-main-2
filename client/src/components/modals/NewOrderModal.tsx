@@ -304,7 +304,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[calc(100%-1rem)] max-w-[500px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New Order</DialogTitle>
           <DialogDescription>
@@ -313,11 +313,11 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="customer-type" className="text-right">
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="customer-type" className="sm:text-right">
               Customer Type
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <Select 
                 value={customerType} 
                 onValueChange={setCustomerType}
@@ -334,11 +334,11 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           </div>
           
           {customerType === 'hotel' ? (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="hotel-select" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+              <Label htmlFor="hotel-select" className="sm:text-right">
                 Select Hotel
               </Label>
-              <div className="col-span-3">
+              <div className="sm:col-span-3">
                 <Select 
                   value={customerId} 
                   onValueChange={setCustomerId}
@@ -356,28 +356,28 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="customer-name" className="text-right">
+              <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                <Label htmlFor="customer-name" className="sm:text-right">
                   Customer Name
                 </Label>
                 <Input
                   id="customer-name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="col-span-3"
+                  className="sm:col-span-3"
                   placeholder="Enter customer name"
                 />
               </div>
               
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="customer-phone" className="text-right">
+              <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                <Label htmlFor="customer-phone" className="sm:text-right">
                   Phone Number
                 </Label>
                 <Input
                   id="customer-phone"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="col-span-3"
+                  className="sm:col-span-3"
                   placeholder="Enter phone number"
                 />
               </div>
@@ -390,7 +390,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
             <h4 className="text-sm font-medium mb-2">Order Items</h4>
             
             {items.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-12 gap-2 mb-2 items-end">
+              <div key={item.id} className="grid grid-cols-12 gap-2 mb-3 items-end sm:mb-2">
                 <div className="col-span-5">
                   <Label htmlFor={`item-type-${item.id}`} className="text-xs">Item</Label>
                   <Select 
