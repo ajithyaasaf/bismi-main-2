@@ -1,5 +1,24 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, push, set, remove, update, DatabaseReference, DataSnapshot } from "firebase/database";
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where,
+  DocumentData,
+  QuerySnapshot,
+  DocumentReference,
+  DocumentSnapshot,
+  CollectionReference,
+  onSnapshot,
+  WhereFilterOp,
+  Query
+} from "firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -14,88 +33,123 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
 
-// Database reference functions
-export const getDbRef = (path: string): DatabaseReference => ref(database, path);
+// Initialize Firestore
+const db = getFirestore(app);
+
+// Collection references
+export const getCollection = <T = DocumentData>(collectionPath: string): CollectionReference<T> => 
+  collection(db, collectionPath) as CollectionReference<T>;
 
 // Data listeners
-export const subscribeToData = <T>(
-  path: string, 
-  callback: (data: T[]) => void
+export const subscribeToCollection = <T>(
+  collectionPath: string, 
+  callback: (data: T[]) => void,
+  queryConstraints: any[] = []
 ): (() => void) => {
-  const dbRef = getDbRef(path);
-  const unsubscribe = onValue(dbRef, (snapshot: DataSnapshot) => {
-    const data = snapshot.val();
-    const formattedData = data ? Object.keys(data).map(key => ({
-      id: key,
-      ...data[key]
-    })) : [];
-    callback(formattedData as T[]);
-  });
+  const collectionRef = getCollection(collectionPath);
+  const q = queryConstraints.length > 0 ? query(collectionRef, ...queryConstraints) : collectionRef;
   
-  return unsubscribe;
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as T[];
+    callback(data);
+  });
 };
 
 // CRUD operations
-export const addData = async <T>(path: string, data: T): Promise<string> => {
-  const dbRef = getDbRef(path);
-  const newItemRef = push(dbRef);
-  await set(newItemRef, data);
-  return newItemRef.key || '';
+export const addDocument = async <T>(collectionPath: string, data: T): Promise<string> => {
+  const collectionRef = getCollection(collectionPath);
+  const docRef = await addDoc(collectionRef, {
+    ...data,
+    createdAt: new Date()
+  });
+  return docRef.id;
 };
 
-export const updateData = async <T>(path: string, id: string, data: Partial<T>): Promise<void> => {
-  const itemRef = getDbRef(`${path}/${id}`);
-  await update(itemRef, data as object);
-};
-
-export const deleteData = async (path: string, id: string): Promise<void> => {
-  const itemRef = getDbRef(`${path}/${id}`);
-  await remove(itemRef);
-};
-
-export const getData = async <T>(path: string): Promise<T[]> => {
-  return new Promise((resolve, reject) => {
-    const dbRef = getDbRef(path);
-    onValue(dbRef, (snapshot: DataSnapshot) => {
-      const data = snapshot.val();
-      const formattedData = data ? Object.keys(data).map(key => ({
-        id: key,
-        ...data[key]
-      })) : [];
-      resolve(formattedData as T[]);
-    }, {
-      onlyOnce: true
-    }, error => {
-      reject(error);
-    });
+export const updateDocument = async <T>(collectionPath: string, id: string, data: Partial<T>): Promise<void> => {
+  const docRef = doc(db, collectionPath, id);
+  await updateDoc(docRef, {
+    ...data,
+    updatedAt: new Date()
   });
 };
 
-export const getDataById = async <T>(path: string, id: string): Promise<T | null> => {
-  return new Promise((resolve, reject) => {
-    const itemRef = getDbRef(`${path}/${id}`);
-    onValue(itemRef, (snapshot: DataSnapshot) => {
-      if (snapshot.exists()) {
-        resolve({
-          id,
-          ...snapshot.val()
-        } as T);
-      } else {
-        resolve(null);
-      }
-    }, {
-      onlyOnce: true
-    }, error => {
-      reject(error);
-    });
-  });
+export const deleteDocument = async (collectionPath: string, id: string): Promise<void> => {
+  const docRef = doc(db, collectionPath, id);
+  await deleteDoc(docRef);
+};
+
+export const getDocuments = async <T>(collectionPath: string, queryConstraints: any[] = []): Promise<T[]> => {
+  const collectionRef = getCollection(collectionPath);
+  const q = queryConstraints.length > 0 ? query(collectionRef, ...queryConstraints) : collectionRef;
+  const snapshot = await getDocs(q);
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  })) as T[];
+};
+
+export const getDocumentById = async <T>(collectionPath: string, id: string): Promise<T | null> => {
+  const docRef = doc(db, collectionPath, id);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    return {
+      id: docSnap.id,
+      ...docSnap.data()
+    } as T;
+  } else {
+    return null;
+  }
+};
+
+// Helper method to query documents by a field
+export const queryDocuments = async <T>(
+  collectionPath: string,
+  field: string,
+  operator: WhereFilterOp,
+  value: any
+): Promise<T[]> => {
+  return getDocuments<T>(collectionPath, [where(field, operator, value)]);
+};
+
+// For compatibility with existing code
+export const getDbRef = (path: string): string => path;
+export const subscribeToData = <T>(path: string, callback: (data: T[]) => void): (() => void) => {
+  return subscribeToCollection(path, callback);
+};
+export const addData = <T>(path: string, data: T): Promise<string> => {
+  return addDocument(path, data);
+};
+export const updateData = <T>(path: string, id: string, data: Partial<T>): Promise<void> => {
+  return updateDocument(path, id, data);
+};
+export const deleteData = (path: string, id: string): Promise<void> => {
+  return deleteDocument(path, id);
+};
+export const getData = <T>(path: string): Promise<T[]> => {
+  return getDocuments(path);
+};
+export const getDataById = <T>(path: string, id: string): Promise<T | null> => {
+  return getDocumentById(path, id);
 };
 
 export default {
   app,
-  database,
+  db,
+  getCollection,
+  subscribeToCollection,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+  getDocuments,
+  getDocumentById,
+  queryDocuments,
+  // Legacy compatibility
   getDbRef,
   subscribeToData,
   addData,
