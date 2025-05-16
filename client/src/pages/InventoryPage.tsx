@@ -7,12 +7,15 @@ import InventoryList from "@/components/inventory/InventoryList";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import * as InventoryService from "@/lib/inventory-service";
+import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
 
 export default function InventoryPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Inventory | null>(null);
   const [firestoreInventory, setFirestoreInventory] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Inventory | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -49,38 +52,43 @@ export default function InventoryPage() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = async (item: Inventory) => {
-    if (confirm(`Are you sure you want to delete ${item.type}?`)) {
+  const handleDeleteClick = (item: Inventory) => {
+    setItemToDelete(item);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    try {
+      // First delete from Firestore directly
       try {
-        // First delete from Firestore directly
-        try {
-          const result = await InventoryService.deleteInventoryItem(item.id);
-          console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
-        } catch (firestoreError) {
-          console.error("Error deleting inventory item from Firestore:", firestoreError);
-        }
-        
-        // Then delete via API for backward compatibility
-        await apiRequest('DELETE', `/api/inventory/${item.id}`, undefined);
-        
-        toast({
-          title: "Item deleted",
-          description: `${item.type} has been successfully deleted`,
-        });
-        
-        // Refresh local state
-        setFirestoreInventory(prev => prev.filter(i => i.id !== item.id));
-        
-        // Refresh inventory data via query cache
-        queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      } catch (error) {
-        console.error("Error during inventory item deletion:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete inventory item",
-          variant: "destructive",
-        });
+        const result = await InventoryService.deleteInventoryItem(itemToDelete.id);
+        console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
+      } catch (firestoreError) {
+        console.error("Error deleting inventory item from Firestore:", firestoreError);
       }
+      
+      // Then delete via API for backward compatibility
+      await apiRequest('DELETE', `/api/inventory/${itemToDelete.id}`, undefined);
+      
+      toast({
+        title: "Item deleted",
+        description: `${itemToDelete.type} has been successfully deleted`,
+      });
+      
+      // Refresh local state
+      setFirestoreInventory(prev => prev.filter(i => i.id !== itemToDelete.id));
+      
+      // Refresh inventory data via query cache
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+    } catch (error) {
+      console.error("Error during inventory item deletion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete inventory item",
+        variant: "destructive",
+      });
     }
   };
 
@@ -137,6 +145,19 @@ export default function InventoryPage() {
           item={selectedItem}
           isOpen={isFormOpen}
           onClose={handleCloseForm}
+        />
+      )}
+      
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          title="Confirm Deletion"
+          description={`Are you sure you want to delete ${itemToDelete.type}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
         />
       )}
     </div>
