@@ -266,6 +266,19 @@ export default function OrdersPage() {
           inventory={displayInventory as Inventory[]}
         />
       )}
+      
+      {orderToDelete && (
+        <ConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          title="Confirm Deletion"
+          description="Are you sure you want to delete this order? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+        />
+      )}
     </div>
   );
 }

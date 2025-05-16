@@ -4,6 +4,8 @@ import { Supplier } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import SupplierForm from "@/components/suppliers/SupplierForm";
 import SuppliersList from "@/components/suppliers/SuppliersList";
+import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
+import PaymentModal from "@/components/modals/PaymentModal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import * as SupplierService from "@/lib/supplier-service";
@@ -13,6 +15,10 @@ export default function SuppliersPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [firestoreSuppliers, setFirestoreSuppliers] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [supplierForPayment, setSupplierForPayment] = useState<Supplier | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -49,60 +55,70 @@ export default function SuppliersPage() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = async (supplier: Supplier) => {
-    if (confirm(`Are you sure you want to delete ${supplier.name}?`)) {
+  const handleDeleteClick = (supplier: Supplier) => {
+    setSupplierToDelete(supplier);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = async () => {
+    if (!supplierToDelete) return;
+    
+    try {
+      // First delete from Firestore directly
       try {
-        // First delete from Firestore directly
-        try {
-          const result = await SupplierService.deleteSupplier(supplier.id);
-          console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
-        } catch (firestoreError) {
-          console.error("Error deleting supplier from Firestore:", firestoreError);
-        }
-        
-        // Then delete via API for backward compatibility
-        await apiRequest('DELETE', `/api/suppliers/${supplier.id}`, undefined);
-        
-        toast({
-          title: "Supplier deleted",
-          description: `${supplier.name} has been successfully deleted`,
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
-      } catch (error) {
-        console.error("Error during supplier deletion:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete supplier",
-          variant: "destructive",
-        });
+        const result = await SupplierService.deleteSupplier(supplierToDelete.id);
+        console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
+      } catch (firestoreError) {
+        console.error("Error deleting supplier from Firestore:", firestoreError);
       }
+      
+      // Then delete via API for backward compatibility
+      await apiRequest('DELETE', `/api/suppliers/${supplierToDelete.id}`, undefined);
+      
+      toast({
+        title: "Supplier deleted",
+        description: `${supplierToDelete.name} has been successfully deleted`,
+      });
+      
+      // Update local state
+      setFirestoreSuppliers(prev => prev.filter(s => s.id !== supplierToDelete.id));
+      
+      // Refresh API data
+      queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
+    } catch (error) {
+      console.error("Error during supplier deletion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete supplier",
+        variant: "destructive",
+      });
     }
   };
 
-  const handlePayment = async (supplierId: string, supplierName: string) => {
-    const amountStr = prompt(`Enter payment amount for ${supplierName}:`);
-    if (!amountStr) return;
-
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid positive number",
-        variant: "destructive",
-      });
-      return;
+  const handlePayment = (supplierId: string, supplierName: string) => {
+    // Find the supplier object to get full details
+    const supplier = firestoreSuppliers.find(s => s.id === supplierId) || 
+                   suppliers.find(s => s.id === supplierId);
+    
+    if (supplier) {
+      setSupplierForPayment(supplier);
+      setIsPaymentModalOpen(true);
     }
+  };
 
+  const processPayment = async (amount: number) => {
+    if (!supplierForPayment) return;
+    
     try {
-      console.log(`Processing payment for supplier ${supplierId} (${supplierName}): ${amount}`);
+      console.log(`Processing payment for supplier ${supplierForPayment.id} (${supplierForPayment.name}): ${amount}`);
       
       // First try to use the recordSupplierPayment function that handles both 
       // the transaction creation and debt update in a single call
       try {
         const result = await SupplierService.recordSupplierPayment(
-          supplierId,
+          supplierForPayment.id,
           amount,
-          `Payment to supplier: ${supplierName}`
+          `Payment to supplier: ${supplierForPayment.name}`
         );
         
         console.log("Payment recorded in Firestore successfully:", result);
@@ -110,16 +126,16 @@ export default function SuppliersPage() {
         // Show success immediately since Firestore operation succeeded
         toast({
           title: "Payment recorded",
-          description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded`,
+          description: `Payment of ₹${amount.toFixed(2)} to ${supplierForPayment.name} has been recorded`,
         });
       } catch (firestoreError) {
         console.error("Error recording payment in Firestore:", firestoreError);
         
         // Continue to API as fallback - only show a toast if the API succeeds after Firestore failed
         try {
-          await apiRequest('POST', `/api/suppliers/${supplierId}/payment`, { 
+          await apiRequest('POST', `/api/suppliers/${supplierForPayment.id}/payment`, { 
             amount,
-            description: `Payment to supplier: ${supplierName}`
+            description: `Payment to supplier: ${supplierForPayment.name}`
           });
           
           console.log("Payment recorded via API after Firestore failed");
@@ -127,7 +143,7 @@ export default function SuppliersPage() {
           // Since Firestore failed but API succeeded, now show a success toast
           toast({
             title: "Payment recorded",
-            description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded via API`,
+            description: `Payment of ₹${amount.toFixed(2)} to ${supplierForPayment.name} has been recorded via API`,
           });
         } catch (apiError) {
           console.error("Both Firestore and API payment methods failed:", apiError);
@@ -215,6 +231,31 @@ export default function SuppliersPage() {
           supplier={selectedSupplier}
           isOpen={isFormOpen}
           onClose={handleCloseForm}
+        />
+      )}
+      
+      {supplierToDelete && (
+        <ConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          title="Confirm Deletion"
+          description={`Are you sure you want to delete ${supplierToDelete.name}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+        />
+      )}
+      
+      {supplierForPayment && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onSubmit={processPayment}
+          title={`Payment to ${supplierForPayment.name}`}
+          entityName={supplierForPayment.name}
+          currentAmount={supplierForPayment.debt || 0}
+          description={`Record a payment to supplier ${supplierForPayment.name}`}
         />
       )}
     </div>
