@@ -209,14 +209,6 @@ export default function CustomersPage() {
         </div>
       ) : (
         <>
-          {firestoreCustomers.length > 0 && (
-            <div className="bg-green-50 border border-green-200 p-3 rounded-md mb-4">
-              <p className="text-sm text-green-800">
-                <span className="font-medium">✓</span> Using Firestore direct connection: {firestoreCustomers.length} customers loaded
-              </p>
-            </div>
-          )}
-          
           <CustomersList 
             customers={displayCustomers as Customer[]} 
             onEdit={handleEditClick}

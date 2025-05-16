@@ -168,14 +168,6 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
         <h3 className="text-lg font-medium leading-6 text-gray-900">Supplier Debts</h3>
       </div>
       
-      {firestoreSuppliers.length > 0 && (
-        <div className="bg-green-50 border-b border-green-200 px-4 py-2">
-          <p className="text-xs text-green-800">
-            <span className="font-medium">✓</span> Using direct Firestore connection
-          </p>
-        </div>
-      )}
-      
       <div className="divide-y divide-gray-200 max-h-[200px] overflow-y-auto">
         {isLoading ? (
           <div className="px-4 py-8 text-center text-gray-500">

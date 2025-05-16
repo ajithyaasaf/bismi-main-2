@@ -201,14 +201,6 @@ export default function SuppliersPage() {
         </div>
       ) : (
         <>
-          {firestoreSuppliers.length > 0 && (
-            <div className="bg-green-50 border border-green-200 p-3 rounded-md mb-4">
-              <p className="text-sm text-green-800">
-                <span className="font-medium">✓</span> Using Firestore direct connection: {firestoreSuppliers.length} suppliers loaded
-              </p>
-            </div>
-          )}
-          
           <SuppliersList 
             suppliers={displaySuppliers as Supplier[]} 
             onEdit={handleEditClick}

@@ -241,14 +241,6 @@ export default function OrdersPage() {
         </div>
       ) : (
         <>
-          {firestoreOrders.length > 0 && (
-            <div className="bg-green-50 border border-green-200 p-3 rounded-md mb-4">
-              <p className="text-sm text-green-800">
-                <span className="font-medium">✓</span> Using Firestore direct connection: {firestoreOrders.length} orders loaded
-              </p>
-            </div>
-          )}
-          
           <OrdersList 
             orders={displayOrders as Order[]} 
             customers={displayCustomers as Customer[]}
