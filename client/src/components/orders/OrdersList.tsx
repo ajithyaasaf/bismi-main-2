@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface OrdersListProps {
   orders: Order[];
@@ -24,14 +25,51 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
   // Sort orders by date (newest first)
-  const sortedOrders = [...orders].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedOrders = [...orders].sort((a, b) => {
+    const dateA = a.date ? new Date(a.date) : new Date();
+    const dateB = b.date ? new Date(b.date) : new Date();
+    return dateB.getTime() - dateA.getTime();
+  });
+  
+  // Get customer by ID
+  const getCustomer = (customerId: string) => {
+    return customers.find(c => c.id === customerId);
+  };
   
   // Get customer name by ID
   const getCustomerName = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
+    const customer = getCustomer(customerId);
     return customer ? customer.name : 'Unknown Customer';
+  };
+  
+  // Create WhatsApp link for a customer
+  const createWhatsAppLink = (customerId: string) => {
+    const customer = getCustomer(customerId);
+    if (!customer || !customer.contact) return null;
+    
+    // Clean the phone number (remove spaces, dashes, etc.)
+    let phoneNumber = customer.contact.replace(/[\s-()]/g, '');
+    
+    // Ensure it has the country code (assuming India +91, but this should be adapted for other regions)
+    if (!phoneNumber.startsWith('+')) {
+      // If it starts with 0, replace it with +91
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = '+91' + phoneNumber.substring(1);
+      } 
+      // If it doesn't have a country code, add +91
+      else if (!phoneNumber.startsWith('91')) {
+        phoneNumber = '+91' + phoneNumber;
+      }
+      // If it starts with 91 but no +, add +
+      else if (phoneNumber.startsWith('91')) {
+        phoneNumber = '+' + phoneNumber;
+      }
+    }
+    
+    // Default message (can be customized as needed)
+    const message = `Hello ${customer.name}, this is from Bismi Chicken Shop regarding your order.`;
+    
+    return `https://wa.me/${phoneNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
   };
   
   // Format items for display
@@ -89,7 +127,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
               {sortedOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>
-                    {format(new Date(order.date), 'MMM dd, yyyy HH:mm')}
+                    {format(order.date ? new Date(order.date) : new Date(), 'MMM dd, yyyy HH:mm')}
                   </TableCell>
                   <TableCell className="font-medium">
                     {getCustomerName(order.customerId)}
