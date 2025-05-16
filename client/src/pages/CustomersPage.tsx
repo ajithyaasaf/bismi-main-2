@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import * as CustomerService from "@/lib/customer-service";
 import PaymentModal from "@/components/modals/PaymentModal";
+import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
 
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -15,6 +16,8 @@ export default function CustomersPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentCustomer, setPaymentCustomer] = useState<{id: string, name: string, pendingAmount?: number} | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [firestoreCustomers, setFirestoreCustomers] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
   const { toast } = useToast();
@@ -53,38 +56,43 @@ export default function CustomersPage() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = async (customer: Customer) => {
-    if (confirm(`Are you sure you want to delete ${customer.name}?`)) {
+  const handleDeleteClick = (customer: Customer) => {
+    setCustomerToDelete(customer);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = async () => {
+    if (!customerToDelete) return;
+    
+    try {
+      // First delete from Firestore directly
       try {
-        // First delete from Firestore directly
-        try {
-          const result = await CustomerService.deleteCustomer(customer.id);
-          console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
-        } catch (firestoreError) {
-          console.error("Error deleting customer from Firestore:", firestoreError);
-        }
-        
-        // Then delete via API for backward compatibility
-        await apiRequest('DELETE', `/api/customers/${customer.id}`, undefined);
-        
-        toast({
-          title: "Customer deleted",
-          description: `${customer.name} has been successfully deleted`,
-        });
-        
-        // Refresh local state
-        setFirestoreCustomers(prev => prev.filter(c => c.id !== customer.id));
-        
-        // Refresh API data via query cache
-        queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
-      } catch (error) {
-        console.error("Error during customer deletion:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete customer",
-          variant: "destructive",
-        });
+        const result = await CustomerService.deleteCustomer(customerToDelete.id);
+        console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
+      } catch (firestoreError) {
+        console.error("Error deleting customer from Firestore:", firestoreError);
       }
+      
+      // Then delete via API for backward compatibility
+      await apiRequest('DELETE', `/api/customers/${customerToDelete.id}`, undefined);
+      
+      toast({
+        title: "Customer deleted",
+        description: `${customerToDelete.name} has been successfully deleted`,
+      });
+      
+      // Refresh local state
+      setFirestoreCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
+      
+      // Refresh API data via query cache
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+    } catch (error) {
+      console.error("Error during customer deletion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete customer",
+        variant: "destructive",
+      });
     }
   };
 
@@ -252,6 +260,20 @@ export default function CustomersPage() {
           entityName={paymentCustomer.name}
           entityType="customer"
           currentAmount={paymentCustomer.pendingAmount || 0}
+        />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {customerToDelete && (
+        <ConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          title="Confirm Deletion"
+          description={`Are you sure you want to delete ${customerToDelete.name}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
         />
       )}
     </div>

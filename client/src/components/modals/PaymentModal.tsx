@@ -11,6 +11,8 @@ interface PaymentModalProps {
   entityName: string;
   entityType: 'supplier' | 'customer';
   currentAmount?: number;
+  title?: string;
+  description?: string;
 }
 
 export default function PaymentModal({
@@ -19,7 +21,9 @@ export default function PaymentModal({
   onSubmit,
   entityName,
   entityType,
-  currentAmount = 0
+  currentAmount = 0,
+  title = "Record Payment",
+  description
 }: PaymentModalProps) {
   const [amount, setAmount] = useState<string>(currentAmount.toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,9 +44,9 @@ export default function PaymentModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Record Payment</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Enter the payment amount for {entityName}
+            {description || `Enter the payment amount for ${entityName}`}
           </DialogDescription>
         </DialogHeader>
         

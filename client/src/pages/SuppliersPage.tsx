@@ -254,6 +254,7 @@ export default function SuppliersPage() {
           onSubmit={processPayment}
           title={`Payment to ${supplierForPayment.name}`}
           entityName={supplierForPayment.name}
+          entityType="supplier"
           currentAmount={supplierForPayment.debt || 0}
           description={`Record a payment to supplier ${supplierForPayment.name}`}
         />
