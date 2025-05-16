@@ -7,6 +7,7 @@ import CustomersList from "@/components/customers/CustomersList";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import * as CustomerService from "@/lib/customer-service";
+import PaymentModal from "@/components/modals/PaymentModal";
 
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);

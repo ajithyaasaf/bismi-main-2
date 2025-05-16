@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import * as SupplierService from "@/lib/supplier-service";
 import * as TransactionService from "@/lib/transaction-service";
+import PaymentModal from "@/components/modals/PaymentModal";
 
 interface SupplierDebtsProps {
   suppliers: Supplier[];
@@ -13,6 +14,8 @@ interface SupplierDebtsProps {
 
 export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
   const [isPaying, setIsPaying] = useState<string | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<{id: string, name: string, debt?: number} | null>(null);
   const [firestoreSuppliers, setFirestoreSuppliers] = useState<any[]>([]);
   const [firestoreTransactions, setFirestoreTransactions] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
@@ -45,27 +48,22 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
     loadFirestoreData();
   }, []);
   
-  const handlePayment = async (supplierId: string, supplierName: string) => {
+  const openPaymentModal = (supplier: {id: string, name: string, debt?: number}) => {
+    setSelectedSupplier(supplier);
+    setPaymentModalOpen(true);
+  };
+  
+  const closePaymentModal = () => {
+    setPaymentModalOpen(false);
+    setSelectedSupplier(null);
+  };
+  
+  const handlePaymentSubmit = async (amount: number) => {
+    if (!selectedSupplier) return;
+    
     try {
+      const { id: supplierId, name: supplierName } = selectedSupplier;
       setIsPaying(supplierId);
-      
-      // Open a prompt for payment amount
-      const amountStr = window.prompt(`Enter payment amount for ${supplierName}:`, "0");
-      if (!amountStr) {
-        setIsPaying(null);
-        return; // User cancelled
-      }
-      
-      const amount = parseFloat(amountStr);
-      if (isNaN(amount) || amount <= 0) {
-        toast({
-          title: "Invalid amount",
-          description: "Please enter a valid positive number",
-          variant: "destructive"
-        });
-        setIsPaying(null);
-        return;
-      }
       
       console.log(`Processing payment of ${amount} for supplier ${supplierId}`);
       
@@ -132,6 +130,7 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
       });
     } finally {
       setIsPaying(null);
+      closePaymentModal();
     }
   };
   
@@ -196,7 +195,7 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
               <div className="text-right">
                 <p className="text-sm font-medium text-red-600">₹{supplier.debt ? supplier.debt.toFixed(2) : '0.00'}</p>
                 <button 
-                  onClick={() => handlePayment(supplier.id, supplier.name)}
+                  onClick={() => openPaymentModal(supplier)}
                   disabled={isPaying === supplier.id || !supplier.debt || supplier.debt <= 0}
                   className="mt-1 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -207,6 +206,18 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
           ))
         )}
       </div>
+      
+      {/* Add the PaymentModal component */}
+      {selectedSupplier && (
+        <PaymentModal
+          isOpen={paymentModalOpen}
+          onClose={closePaymentModal}
+          onSubmit={handlePaymentSubmit}
+          entityName={selectedSupplier.name}
+          entityType="supplier"
+          currentAmount={selectedSupplier.debt || 0}
+        />
+      )}
     </div>
   );
 }
