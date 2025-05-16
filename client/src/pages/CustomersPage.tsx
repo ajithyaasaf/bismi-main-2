@@ -12,6 +12,9 @@ import PaymentModal from "@/components/modals/PaymentModal";
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentCustomer, setPaymentCustomer] = useState<{id: string, name: string, pendingAmount?: number} | null>(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [firestoreCustomers, setFirestoreCustomers] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
   const { toast } = useToast();
@@ -85,21 +88,31 @@ export default function CustomersPage() {
     }
   };
 
-  const handlePayment = async (customerId: string, customerName: string) => {
-    const amountStr = prompt(`Enter payment amount from ${customerName}:`);
-    if (!amountStr) return;
-
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid positive number",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const openPaymentModal = (customerId: string, customerName: string) => {
+    const customer = firestoreCustomers.find(c => c.id === customerId) || 
+                     customers.find(c => c.id === customerId);
+    
+    setPaymentCustomer({
+      id: customerId,
+      name: customerName,
+      pendingAmount: customer?.pendingAmount || 0
+    });
+    setPaymentModalOpen(true);
+  };
+  
+  const closePaymentModal = () => {
+    setPaymentModalOpen(false);
+    setPaymentCustomer(null);
+    setIsPaymentProcessing(false);
+  };
+  
+  const handlePaymentSubmit = async (amount: number) => {
+    if (!paymentCustomer) return;
+    
     try {
+      const { id: customerId, name: customerName } = paymentCustomer;
+      setIsPaymentProcessing(true);
+      
       console.log(`Processing payment from customer ${customerId} (${customerName}): ${amount}`);
       
       // First add the transaction directly to Firestore
@@ -167,6 +180,9 @@ export default function CustomersPage() {
         description: "There was an error recording the payment",
         variant: "destructive",
       });
+    } finally {
+      setIsPaymentProcessing(false);
+      closePaymentModal();
     }
   };
 
@@ -214,7 +230,7 @@ export default function CustomersPage() {
             customers={displayCustomers as Customer[]} 
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
-            onPayment={handlePayment}
+            onPayment={openPaymentModal}
           />
         </>
       )}
@@ -224,6 +240,18 @@ export default function CustomersPage() {
           customer={selectedCustomer}
           isOpen={isFormOpen}
           onClose={handleCloseForm}
+        />
+      )}
+      
+      {/* Payment Modal */}
+      {paymentCustomer && (
+        <PaymentModal
+          isOpen={paymentModalOpen}
+          onClose={closePaymentModal}
+          onSubmit={handlePaymentSubmit}
+          entityName={paymentCustomer.name}
+          entityType="customer"
+          currentAmount={paymentCustomer.pendingAmount || 0}
         />
       )}
     </div>
