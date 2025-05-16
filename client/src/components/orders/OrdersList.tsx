@@ -129,8 +129,32 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                   <TableCell>
                     {format(order.date ? new Date(order.date) : new Date(), 'MMM dd, yyyy HH:mm')}
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium flex items-center gap-2">
                     {getCustomerName(order.customerId)}
+                    {createWhatsAppLink(order.customerId) && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a 
+                              href={createWhatsAppLink(order.customerId) || "#"} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                            >
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <i className="fab fa-whatsapp text-lg"></i>
+                              </Button>
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Send WhatsApp message</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </TableCell>
                   <TableCell>
                     {formatItems(order.items as OrderItem[])}
@@ -192,11 +216,37 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <p className="text-sm text-gray-500">Customer</p>
-                  <p className="font-medium">{getCustomerName(selectedOrder.customerId)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{getCustomerName(selectedOrder.customerId)}</p>
+                    {createWhatsAppLink(selectedOrder.customerId) && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a 
+                              href={createWhatsAppLink(selectedOrder.customerId) || "#"} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                            >
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <i className="fab fa-whatsapp text-lg"></i>
+                              </Button>
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Send WhatsApp message</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-medium">{format(new Date(selectedOrder.date), 'PPpp')}</p>
+                  <p className="font-medium">{format(selectedOrder.date ? new Date(selectedOrder.date) : new Date(), 'PPpp')}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Status</p>

@@ -124,6 +124,23 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           setIsSubmitting(false);
           return;
         }
+        
+        // Update hotel's phone number if provided and different from current
+        if (customerPhone) {
+          const selectedHotel = hotels.find(h => h.id === customerId);
+          if (selectedHotel && selectedHotel.contact !== customerPhone) {
+            console.log(`Updating hotel ${selectedHotel.name} contact to ${customerPhone}`);
+            try {
+              // Update the customer contact info
+              await CustomerService.updateCustomer(customerId, {
+                contact: customerPhone
+              });
+            } catch (error) {
+              console.error('Failed to update hotel contact:', error);
+              // Continue with order creation even if contact update fails
+            }
+          }
+        }
       } else {
         // Random customer - create if not exists
         if (!customerName) {
@@ -336,26 +353,50 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           
           {/* Conditional Customer Fields */}
           {customerType === 'hotel' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-              <Label htmlFor="hotel-select" className="sm:text-right text-sm font-medium">
-                Select Hotel
-              </Label>
-              <div className="sm:col-span-3">
-                <Select 
-                  value={customerId} 
-                  onValueChange={setCustomerId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select hotel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hotels.map(hotel => (
-                      <SelectItem key={hotel.id} value={hotel.id}>{hotel.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                <Label htmlFor="hotel-select" className="sm:text-right text-sm font-medium">
+                  Select Hotel
+                </Label>
+                <div className="sm:col-span-3">
+                  <Select 
+                    value={customerId} 
+                    onValueChange={(value) => {
+                      setCustomerId(value);
+                      // Try to get the existing phone number for the selected hotel
+                      const selectedHotel = hotels.find(h => h.id === value);
+                      if (selectedHotel && selectedHotel.contact) {
+                        setCustomerPhone(selectedHotel.contact);
+                      } else {
+                        setCustomerPhone('');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select hotel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hotels.map(hotel => (
+                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                <Label htmlFor="hotel-phone" className="sm:text-right text-sm font-medium">
+                  Phone Number
+                </Label>
+                <Input
+                  id="hotel-phone"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="sm:col-span-3"
+                  placeholder="Enter hotel phone number"
+                />
+              </div>
+            </>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
