@@ -82,40 +82,52 @@ export default function CustomersList({
       // Add pending amount info if applicable
       if (latestCustomer.pendingAmount && latestCustomer.pendingAmount > 0) {
         message += `\n\n*Current Pending Amount: ₹${latestCustomer.pendingAmount.toFixed(2)}*`;
-        
-        // Fetch recent orders for this customer to include in the message
-        try {
-          const response = await fetch(`/api/orders?customerId=${latestCustomer.id}`);
-          if (response.ok) {
-            const orders = await response.json();
+      }
+      
+      // Fetch recent orders for this customer to include in the message
+      try {
+        const response = await fetch(`/api/orders?customerId=${latestCustomer.id}`);
+        if (response.ok) {
+          const orders = await response.json();
+          
+          // If there are recent orders, add them to the message
+          if (orders && orders.length > 0) {
+            // Sort orders by date, newest first
+            const sortedOrders = [...orders].sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
             
-            // If there are recent orders, add them to the message
-            if (orders && orders.length > 0) {
-              // Sort orders by date, newest first
-              const sortedOrders = [...orders].sort((a, b) => 
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-              );
-              
-              // Get the most recent order
-              const latestOrder = sortedOrders[0];
-              
-              message += `\n\n*Recent Order Details:*`;
-              message += `\n📅 Date: ${new Date(latestOrder.date).toLocaleDateString()}`;
-              message += `\n💰 Amount: ₹${latestOrder.total.toFixed(2)}`;
-              
-              // Add items purchased
-              if (latestOrder.items && latestOrder.items.length > 0) {
-                message += `\n\n*Items Purchased:*`;
-                latestOrder.items.forEach(item => {
-                  message += `\n- ${item.quantity.toFixed(2)} kg ${item.type} (₹${item.rate.toFixed(2)}/kg)`;
-                });
-              }
+            // Get the most recent order
+            const latestOrder = sortedOrders[0];
+            
+            // Format the date in a nicer format
+            const orderDate = new Date(latestOrder.date);
+            const formattedDate = orderDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric', 
+              year: 'numeric'
+            });
+            
+            message += `\n\n*Order Details:*`;
+            message += `\n📅 Date: ${formattedDate}`;
+            message += `\n💰 Amount: ₹${latestOrder.total.toFixed(2)}`;
+            message += `\n📦 Status: ${latestOrder.status === 'paid' ? 'Paid' : 'Pending'}`;
+            
+            // Add item details
+            if (latestOrder.items && latestOrder.items.length > 0) {
+              message += `\n\n*Items Purchased:*`;
+              latestOrder.items.forEach(item => {
+                message += `\n- ${item.quantity.toFixed(2)} kg ${item.type} (₹${item.rate.toFixed(2)}/kg)`;
+              });
             }
           }
-        } catch (error) {
-          console.error("Error fetching orders for WhatsApp message:", error);
         }
-        
+      } catch (error) {
+        console.error("Error fetching orders for WhatsApp message:", error);
+      }
+      
+      // Add a general message based on pending amount
+      if (latestCustomer.pendingAmount && latestCustomer.pendingAmount > 0) {
         message += `\n\nThis is a friendly reminder about your pending payment. Please settle at your earliest convenience.`;
       } else {
         message += `\n\nThank you for your business with us.`;
