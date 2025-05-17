@@ -168,9 +168,15 @@ const InvoicePDF = ({
     return differenceInDays(currentDateObj, orderDate) >= overdueThresholdDays;
   });
   
-  // Format order items for display
+  // Format order items for display with proper currency formatting
   const formatOrderItems = (items: any[]) => {
-    return items.map(item => `${item.quantity} kg ${item.type} - ₹${item.rate}/kg`).join(', ');
+    if (!items || !Array.isArray(items) || items.length === 0) return "No items";
+    
+    return items.map(item => {
+      const quantity = typeof item.quantity === 'number' ? item.quantity.toFixed(2) : item.quantity;
+      const rate = typeof item.rate === 'number' ? item.rate.toFixed(2) : item.rate;
+      return `${quantity} kg ${item.type} - ₹${rate}/kg`;
+    }).join(', ');
   };
   
   return (
@@ -181,16 +187,24 @@ const InvoicePDF = ({
         {/* Business Information */}
         <View style={styles.businessInfo}>
           <Text style={styles.subheader}>Bismi Chicken Shop</Text>
-          <Text>123 Main Street, Coimbatore, Tamil Nadu</Text>
-          <Text>Phone: +91 98765 43210</Text>
-          <Text>Email: info@bismichicken.com</Text>
-          <Text>GSTIN: 33ABCDE1234F1Z5</Text>
+          <Text>127 Anna Salai, Coimbatore, Tamil Nadu</Text>
+          <Text>Phone: +91 95978 43210</Text>
+          <Text>Email: bismichicken@gmail.com</Text>
+          <Text>GSTIN: 33AADCB1234F1Z5</Text>
         </View>
         
         {/* Invoice Details */}
         <View style={styles.section}>
-          <Text style={styles.label}>INVOICE DATE</Text>
-          <Text style={styles.value}>{currentDate}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View>
+              <Text style={styles.label}>INVOICE DATE</Text>
+              <Text style={styles.value}>{format(parseISO(currentDate), 'dd/MM/yyyy')}</Text>
+            </View>
+            <View>
+              <Text style={styles.label}>INVOICE NUMBER</Text>
+              <Text style={styles.value}>INV-{Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</Text>
+            </View>
+          </View>
           
           <Text style={styles.label}>INVOICE TO</Text>
           <View style={styles.customerInfo}>
@@ -233,10 +247,10 @@ const InvoicePDF = ({
                       {formatOrderItems(order.items)}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColAmount]}>
-                      ₹{order.total.toFixed(2)}
+                      ₹{typeof order.total === 'number' ? order.total.toFixed(2) : order.total}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColStatus]}>
-                      {isOverdue ? 'OVERDUE' : `${daysSincePurchase} days pending`}
+                      {isOverdue ? `OVERDUE (${daysSincePurchase} days)` : `${daysSincePurchase} days pending`}
                     </Text>
                   </View>
                 );
@@ -251,7 +265,7 @@ const InvoicePDF = ({
           {/* Total Row */}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Pending Amount:</Text>
-            <Text style={styles.totalValue}>₹{totalPending.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>₹{typeof totalPending === 'number' ? totalPending.toFixed(2) : totalPending}</Text>
           </View>
           
           {/* Overdue Alert */}
@@ -260,6 +274,24 @@ const InvoicePDF = ({
               * {overdueOrders.length} order(s) are overdue by {overdueThresholdDays}+ days. Please make payment immediately.
             </Text>
           )}
+        </View>
+        
+        {/* Payment Terms */}
+        <View style={{marginTop: 20, marginBottom: 10}}>
+          <Text style={{fontSize: 12, fontWeight: 'bold'}}>Payment Terms:</Text>
+          <Text style={{fontSize: 10, marginBottom: 5}}>1. Payment is due within 15 days of invoice date</Text>
+          <Text style={{fontSize: 10, marginBottom: 5}}>2. Please make payment via bank transfer or cash</Text>
+          <Text style={{fontSize: 10, marginBottom: 5}}>3. Late payments may be subject to interest charges</Text>
+        </View>
+        
+        {/* Bank Details */}
+        <View style={{marginBottom: 20}}>
+          <Text style={{fontSize: 12, fontWeight: 'bold'}}>Bank Details:</Text>
+          <Text style={{fontSize: 10, marginBottom: 3}}>Bank Name: State Bank of India</Text>
+          <Text style={{fontSize: 10, marginBottom: 3}}>Account Name: Bismi Chicken Shop</Text>
+          <Text style={{fontSize: 10, marginBottom: 3}}>Account Number: 3582********63</Text>
+          <Text style={{fontSize: 10, marginBottom: 3}}>IFSC: SBIN0011729</Text>
+          <Text style={{fontSize: 10, marginBottom: 3}}>Branch: Anna Salai, Coimbatore</Text>
         </View>
         
         {/* Footer */}
