@@ -144,9 +144,6 @@ const InvoicePDF = ({
   currentDate: string;
   overdueThresholdDays?: number;
 }) => {
-  // Calculate total pending amount
-  const totalPending = customer.pendingAmount || 0;
-  
   // Filter to get orders with pending payments
   const pendingOrders = orders.filter(order => {
     // Check if the order belongs to this customer
@@ -155,6 +152,11 @@ const InvoicePDF = ({
     // Consider orders that are not marked as paid
     return order.status !== 'paid';
   });
+  
+  // Calculate total pending amount by summing up the total of all pending orders
+  const totalPending = pendingOrders.reduce((sum, order) => {
+    return sum + (typeof order.total === 'number' ? order.total : 0);
+  }, 0);
   
   // Check for overdue orders (older than threshold days)
   const overdueOrders = pendingOrders.filter(order => {
