@@ -27,8 +27,9 @@ export default function CustomersList({
 }: CustomersListProps) {
   
   // Create WhatsApp link for a customer
-  const createWhatsAppLink = async (customer: Customer) => {
-    if (!customer.contact) return null;
+  // Function to handle WhatsApp message sending
+  const handleWhatsAppClick = async (customer: Customer) => {
+    if (!customer.contact) return;
     
     try {
       // Get the latest customer data to ensure pending amount is up-to-date
@@ -37,8 +38,17 @@ export default function CustomersList({
       try {
         // Try to get the latest customer data from Firestore
         const updatedCustomer = await CustomerService.getCustomerById(customer.id);
-        if (updatedCustomer) {
-          latestCustomer = updatedCustomer;
+        if (updatedCustomer && 'id' in updatedCustomer && 'name' in updatedCustomer) {
+          // Make sure we have a complete customer object
+          latestCustomer = {
+            id: updatedCustomer.id || customer.id,
+            name: updatedCustomer.name || customer.name,
+            type: updatedCustomer.type || customer.type,
+            contact: updatedCustomer.contact || customer.contact,
+            pendingAmount: updatedCustomer.pendingAmount !== undefined ? 
+              updatedCustomer.pendingAmount : customer.pendingAmount,
+            createdAt: updatedCustomer.createdAt || customer.createdAt
+          };
           console.log("Got latest customer data for WhatsApp message:", latestCustomer);
         }
       } catch (error) {
@@ -47,7 +57,8 @@ export default function CustomersList({
       }
       
       // Clean the phone number (remove spaces, dashes, etc.)
-      let phoneNumber = latestCustomer.contact.replace(/[\s-()]/g, '');
+      let phoneNumber = latestCustomer.contact ? latestCustomer.contact.replace(/[\s-()]/g, '') : '';
+      if (!phoneNumber) return;
       
       // Ensure it has the country code (assuming India +91, but this should be adapted for other regions)
       if (!phoneNumber.startsWith('+')) {
@@ -79,10 +90,13 @@ export default function CustomersList({
       // Add a closing message
       message += `\n\nFor any queries, please contact us.`;
       
-      return `https://wa.me/${phoneNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
+      // Create the WhatsApp URL
+      const whatsappUrl = `https://wa.me/${phoneNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
+      
+      // Open in a new tab
+      window.open(whatsappUrl, '_blank');
     } catch (error) {
-      console.error("Error creating WhatsApp link:", error);
-      return null;
+      console.error("Error creating WhatsApp message:", error);
     }
   };
   if (customers.length === 0) {
@@ -121,12 +135,7 @@ export default function CustomersList({
                             variant="outline" 
                             size="sm" 
                             className="h-9 w-9 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={async () => {
-                              const whatsappLink = await createWhatsAppLink(customer);
-                              if (whatsappLink) {
-                                window.open(whatsappLink, '_blank');
-                              }
-                            }}
+                            onClick={() => handleWhatsAppClick(customer)}
                           >
                             <i className="fab fa-whatsapp text-lg"></i>
                           </Button>
@@ -224,12 +233,7 @@ export default function CustomersList({
                                 variant="outline" 
                                 size="sm" 
                                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={async () => {
-                                  const whatsappLink = await createWhatsAppLink(customer);
-                                  if (whatsappLink) {
-                                    window.open(whatsappLink, '_blank');
-                                  }
-                                }}
+                                onClick={() => handleWhatsAppClick(customer)}
                               >
                                 <i className="fab fa-whatsapp"></i>
                               </Button>
