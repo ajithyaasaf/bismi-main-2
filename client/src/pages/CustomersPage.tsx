@@ -239,6 +239,43 @@ export default function CustomersPage() {
     setInvoiceCustomer(null);
   };
   
+  // Function to recalculate pending amounts for customers
+  const recalculatePendingAmounts = async () => {
+    try {
+      toast({
+        title: "Recalculating pending amounts",
+        description: "Please wait while we update customer balances..."
+      });
+      
+      // Get all customers
+      const allCustomers = firestoreCustomers.length > 0 ? firestoreCustomers : customers;
+      
+      // Process each customer 
+      for (const customer of allCustomers) {
+        await CustomerService.recalculateCustomerPendingAmount(customer.id);
+      }
+      
+      // Refresh the customers list
+      const refreshedCustomers = await CustomerService.getCustomers();
+      setFirestoreCustomers(refreshedCustomers);
+      
+      // Refresh API data
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      
+      toast({
+        title: "Recalculation complete",
+        description: "All customer pending amounts have been updated"
+      });
+    } catch (error) {
+      console.error("Error recalculating pending amounts:", error);
+      toast({
+        title: "Recalculation failed",
+        description: "There was an error updating pending amounts",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Determine which customers to display - prefer Firestore data when available
   const displayCustomers = firestoreCustomers.length > 0 ? firestoreCustomers : customers;
   const isPageLoading = isFirestoreLoading && isLoading;
@@ -250,9 +287,14 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold text-gray-900 font-sans">Customers</h1>
           <p className="mt-1 text-sm text-gray-500">Manage customers and pending payments</p>
         </div>
-        <Button onClick={handleAddClick}>
-          <i className="fas fa-plus mr-2"></i> Add Customer
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={recalculatePendingAmounts}>
+            <i className="fas fa-sync-alt mr-2"></i> Update Balances
+          </Button>
+          <Button onClick={handleAddClick}>
+            <i className="fas fa-plus mr-2"></i> Add Customer
+          </Button>
+        </div>
       </div>
 
       {isPageLoading ? (

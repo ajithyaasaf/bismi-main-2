@@ -13,6 +13,7 @@ import {
   setLogLevel
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
+import * as OrderService from './order-service';
 
 // Enable Firestore logs in development to help debug
 if (import.meta.env.DEV) {
@@ -141,6 +142,44 @@ export async function getCustomerById(id: string) {
     return null;
   } catch (error) {
     console.error(`Error getting customer from Firestore:`, error);
+    throw error;
+  }
+}
+
+// Recalculate a customer's pending amount based on their pending orders
+export async function recalculateCustomerPendingAmount(customerId: string) {
+  try {
+    console.log(`Recalculating pending amount for customer with ID: ${customerId}`);
+    
+    // Get all orders for this customer
+    const customerOrders = await OrderService.getOrdersByCustomer(customerId);
+    
+    // Calculate total pending amount by summing all pending orders
+    const pendingAmount = customerOrders
+      .filter(order => {
+        // Check if order has status property and if it's not 'paid'
+        return typeof order === 'object' && 
+               order !== null && 
+               'status' in order && 
+               order.status !== 'paid';
+      })
+      .reduce((sum, order) => {
+        // Safely extract total value
+        const total = typeof order === 'object' && 
+                      order !== null && 
+                      'total' in order ? 
+                      (typeof order.total === 'number' ? order.total : 0) : 0;
+        return sum + total;
+      }, 0);
+    
+    console.log(`Calculated pending amount for customer ${customerId}: ${pendingAmount}`);
+    
+    // Update the customer with the new pending amount
+    const updateResult = await updateCustomer(customerId, { pendingAmount });
+    
+    return updateResult;
+  } catch (error) {
+    console.error(`Error recalculating pending amount for customer ${customerId}:`, error);
     throw error;
   }
 }
