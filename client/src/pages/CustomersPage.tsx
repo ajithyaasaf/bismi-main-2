@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Customer } from "@shared/schema";
+import { Customer, Order } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import CustomerForm from "@/components/customers/CustomerForm";
 import CustomersList from "@/components/customers/CustomersList";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import * as CustomerService from "@/lib/customer-service";
+import * as OrderService from "@/lib/order-service";
 import PaymentModal from "@/components/modals/PaymentModal";
 import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
+import CustomerInvoice from "@/components/invoices/CustomerInvoice";
 
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -19,26 +21,36 @@ export default function CustomersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [firestoreCustomers, setFirestoreCustomers] = useState<any[]>([]);
+  const [firestoreOrders, setFirestoreOrders] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceCustomer, setInvoiceCustomer] = useState<Customer | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Load customers from Firestore directly
+  // Load customers and orders from Firestore directly
   useEffect(() => {
-    async function loadFirestoreCustomers() {
+    async function loadFirestoreData() {
       try {
         setIsFirestoreLoading(true);
+        
+        // Load customers
         const customers = await CustomerService.getCustomers();
         console.log("Loaded customers directly from Firestore:", customers);
         setFirestoreCustomers(customers);
+        
+        // Load orders for invoice generation
+        const orders = await OrderService.getOrders();
+        console.log("Loaded orders directly from Firestore:", orders);
+        setFirestoreOrders(orders);
       } catch (error) {
-        console.error("Error loading customers from Firestore:", error);
+        console.error("Error loading data from Firestore:", error);
       } finally {
         setIsFirestoreLoading(false);
       }
     }
     
-    loadFirestoreCustomers();
+    loadFirestoreData();
   }, []);
 
   // Fetch customers from API as backup
@@ -198,17 +210,33 @@ export default function CustomersPage() {
     setIsFormOpen(false);
     
     // Refresh Firestore data
-    async function refreshFirestoreCustomers() {
+    async function refreshFirestoreData() {
       try {
         const customers = await CustomerService.getCustomers();
         console.log("Refreshed customers from Firestore:", customers);
         setFirestoreCustomers(customers);
+        
+        // Also refresh orders for invoice data
+        const orders = await OrderService.getOrders();
+        setFirestoreOrders(orders);
       } catch (error) {
-        console.error("Error refreshing customers from Firestore:", error);
+        console.error("Error refreshing data from Firestore:", error);
       }
     }
     
-    refreshFirestoreCustomers();
+    refreshFirestoreData();
+  };
+  
+  // Handler for generating invoice
+  const handleGenerateInvoice = (customer: Customer) => {
+    setInvoiceCustomer(customer);
+    setIsInvoiceModalOpen(true);
+  };
+  
+  // Close invoice modal
+  const closeInvoiceModal = () => {
+    setIsInvoiceModalOpen(false);
+    setInvoiceCustomer(null);
   };
   
   // Determine which customers to display - prefer Firestore data when available
@@ -239,6 +267,7 @@ export default function CustomersPage() {
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
             onPayment={openPaymentModal}
+            onGenerateInvoice={handleGenerateInvoice}
           />
         </>
       )}
@@ -274,6 +303,16 @@ export default function CustomersPage() {
           confirmText="Delete"
           cancelText="Cancel"
           variant="destructive"
+        />
+      )}
+      
+      {/* Invoice Modal */}
+      {invoiceCustomer && (
+        <CustomerInvoice
+          isOpen={isInvoiceModalOpen}
+          onClose={closeInvoiceModal}
+          customer={invoiceCustomer}
+          orders={firestoreOrders as Order[]}
         />
       )}
     </div>

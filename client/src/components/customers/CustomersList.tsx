@@ -327,6 +327,23 @@ export default function CustomersList({
                           <i className="fas fa-money-bill-wave"></i>
                         </Button>
                       )}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-blue-600" 
+                              onClick={() => onGenerateInvoice(customer)}
+                            >
+                              <i className="fas fa-file-invoice"></i>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Generate Invoice</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>

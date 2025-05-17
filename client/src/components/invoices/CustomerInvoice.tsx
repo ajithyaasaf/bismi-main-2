@@ -144,7 +144,7 @@ const InvoicePDF = ({
   
   // Filter to get orders with pending payments
   const pendingOrders = orders.filter(order => 
-    order.status === 'completed' && !order.isPaid
+    (order.status === 'completed' || order.status === 'delivered') && order.status !== 'paid'
   );
   
   // Check for overdue orders (older than threshold days)
