@@ -143,15 +143,27 @@ const InvoicePDF = ({
   const totalPending = customer.pendingAmount || 0;
   
   // Filter to get orders with pending payments
-  const pendingOrders = orders.filter(order => 
-    (order.status === 'completed' || order.status === 'delivered') && order.status !== 'paid'
-  );
+  const pendingOrders = orders.filter(order => {
+    // Check if the order belongs to this customer
+    if (order.customerId !== customer.id) return false;
+    
+    // Consider orders that are not marked as paid
+    return order.status !== 'paid';
+  });
   
   // Check for overdue orders (older than threshold days)
   const overdueOrders = pendingOrders.filter(order => {
-    const orderDate = typeof order.date === 'string' 
-      ? parseISO(order.date)
-      : new Date(order.date);
+    // Handle different date formats from API or Firestore
+    let orderDate: Date;
+    if (typeof order.date === 'string') {
+      orderDate = parseISO(order.date);
+    } else if (order.date instanceof Date) {
+      orderDate = order.date;
+    } else {
+      // Fallback to current date if date is null or invalid
+      orderDate = new Date();
+    }
+    
     const currentDateObj = parseISO(currentDate);
     return differenceInDays(currentDateObj, orderDate) >= overdueThresholdDays;
   });
@@ -199,9 +211,16 @@ const InvoicePDF = ({
             
             {pendingOrders.length > 0 ? (
               pendingOrders.map((order, index) => {
-                const orderDate = typeof order.date === 'string' 
-                  ? parseISO(order.date) 
-                  : new Date(order.date);
+                // Handle different date formats from API or Firestore
+                let orderDate: Date;
+                if (typeof order.date === 'string') {
+                  orderDate = parseISO(order.date);
+                } else if (order.date instanceof Date) {
+                  orderDate = order.date;
+                } else {
+                  // Fallback to current date if date is null or invalid
+                  orderDate = new Date();
+                }
                 const daysSincePurchase = differenceInDays(parseISO(currentDate), orderDate);
                 const isOverdue = daysSincePurchase >= overdueThresholdDays;
                 
