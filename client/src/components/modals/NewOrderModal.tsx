@@ -254,38 +254,39 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       if (paymentStatus === 'pending') {
         console.log('Updating customer pending amount');
         
-        // Get the customer either from the existing list or the newly created customer
-        let customer;
+        // Get the customer ID from either hotel or random customer
+        const customerIdToUpdate = customerType === 'hotel' ? customerId : orderCustomerId;
         
-        if (customerType === 'hotel') {
-          // For hotel customers, find by ID in the customers array
-          customer = customers.find(c => c.id === customerId);
-        } else {
-          // For newly created random customers, look them up by ID
+        if (customerIdToUpdate) {
+          console.log(`Recalculating pending amount for customer ${customerIdToUpdate} based on all pending orders`);
+          
           try {
-            customer = await CustomerService.getCustomerById(orderCustomerId);
-            console.log('Retrieved newly created customer:', customer);
+            // Use our recalculate function to update the customer's pending amount properly
+            await CustomerService.recalculateCustomerPendingAmount(customerIdToUpdate);
           } catch (error) {
-            console.error('Failed to get newly created customer:', error);
-          }
-        }
-          
-        if (customer && typeof customer === 'object') {
-          // Check if the customer has the expected properties
-          const id = 'id' in customer ? customer.id : 
-                    'firebaseId' in customer ? customer.firebaseId : null;
-                    
-          const pendingAmount = 'pendingAmount' in customer ? 
-                                customer.pendingAmount || 0 : 0;
-          
-          if (id) {
-            const newPending = pendingAmount + total;
+            console.error(`Failed to recalculate pending amount for customer ${customerIdToUpdate}:`, error);
             
-            console.log(`Updating customer ${id} pending amount from ${pendingAmount} to ${newPending}`);
-            
-            await CustomerService.updateCustomer(id, {
-              pendingAmount: newPending
-            });
+            // Fall back to manual update if recalculation fails
+            try {
+              const customer = await CustomerService.getCustomerById(customerIdToUpdate);
+              if (customer) {
+                // Safely get the pending amount as a number
+                let pendingAmount = 0;
+                if (customer && typeof customer === 'object' && 'pendingAmount' in customer) {
+                  pendingAmount = typeof customer.pendingAmount === 'number' ? customer.pendingAmount : 0;
+                }
+                
+                const newPending = pendingAmount + total;
+                
+                console.log(`Falling back to manual update: ${pendingAmount} + ${total} = ${newPending}`);
+                
+                await CustomerService.updateCustomer(customerIdToUpdate, {
+                  pendingAmount: newPending
+                });
+              }
+            } catch (fallbackError) {
+              console.error('Fallback pending amount update also failed:', fallbackError);
+            }
           }
         }
       }
