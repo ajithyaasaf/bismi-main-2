@@ -102,9 +102,10 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
     if (items.length === 0) return 'No items';
     
     // Take first 2 items and summarize
-    const displayItems = items.slice(0, 2).map(item => 
-      `${item.quantity} kg ${item.type}`
-    ).join(', ');
+    const displayItems = items.slice(0, 2).map(item => {
+      const details = item.details ? ` (${item.details})` : '';
+      return `${item.quantity} kg ${item.type}${details}`;
+    }).join(', ');
     
     return items.length > 2 
       ? `${displayItems} and ${items.length - 2} more` 
@@ -294,6 +295,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                       <TableHead className="text-right">Quantity (kg)</TableHead>
                       <TableHead className="text-right">Rate (₹)</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -303,6 +305,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                         <TableCell className="text-right">{item.quantity.toFixed(2)}</TableCell>
                         <TableCell className="text-right">₹{item.rate.toFixed(2)}</TableCell>
                         <TableCell className="text-right">₹{(item.quantity * item.rate).toFixed(2)}</TableCell>
+                        <TableCell>{item.details || '-'}</TableCell>
                       </TableRow>
                     ))}
                     <TableRow>

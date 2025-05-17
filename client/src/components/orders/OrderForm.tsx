@@ -33,7 +33,8 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
     type: string;
     quantity: string;
     rate: string;
-  }[]>([{ id: '1', type: 'chicken', quantity: '', rate: '' }]);
+    details?: string;
+  }[]>([{ id: '1', type: 'chicken', quantity: '', rate: '', details: '' }]);
   const [paymentStatus, setPaymentStatus] = useState('paid');
   const [isSubmitting, setIsSubmitting] = useState(false);
   

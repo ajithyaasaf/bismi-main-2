@@ -182,7 +182,8 @@ const InvoicePDF = ({
     return items.map(item => {
       const quantity = typeof item.quantity === 'number' ? item.quantity.toFixed(2) : item.quantity;
       const rate = typeof item.rate === 'number' ? item.rate.toFixed(2) : item.rate;
-      return `${quantity} kg ${item.type} - ₹${rate}/kg`;
+      const details = item.details ? ` (${item.details})` : '';
+      return `${quantity} kg ${item.type}${details} - ₹${rate}/kg`;
     }).join(', ');
   };
   
