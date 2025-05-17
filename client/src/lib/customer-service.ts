@@ -157,19 +157,22 @@ export async function recalculateCustomerPendingAmount(customerId: string) {
     // Calculate total pending amount by summing all pending orders
     const pendingAmount = customerOrders
       .filter(order => {
-        // Check if order has status property and if it's not 'paid'
-        return typeof order === 'object' && 
-               order !== null && 
-               'status' in order && 
+        // Check if the order has the required properties
+        return order && 
+               typeof order === 'object' && 
+               'status' in order &&
+               typeof order.status === 'string' &&
                order.status !== 'paid';
       })
       .reduce((sum, order) => {
-        // Safely extract total value
-        const total = typeof order === 'object' && 
-                      order !== null && 
-                      'total' in order ? 
-                      (typeof order.total === 'number' ? order.total : 0) : 0;
-        return sum + total;
+        // Safely extract total value with type checking
+        let orderTotal = 0;
+        if (order && 
+            typeof order === 'object' && 
+            'total' in order) {
+          orderTotal = typeof order.total === 'number' ? order.total : 0;
+        }
+        return sum + orderTotal;
       }, 0);
     
     console.log(`Calculated pending amount for customer ${customerId}: ${pendingAmount}`);
