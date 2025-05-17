@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CustomersListProps {
   customers: Customer[];
@@ -23,6 +24,46 @@ export default function CustomersList({
   onDelete,
   onPayment 
 }: CustomersListProps) {
+  
+  // Create WhatsApp link for a customer
+  const createWhatsAppLink = (customer: Customer) => {
+    if (!customer.contact) return null;
+    
+    // Clean the phone number (remove spaces, dashes, etc.)
+    let phoneNumber = customer.contact.replace(/[\s-()]/g, '');
+    
+    // Ensure it has the country code (assuming India +91, but this should be adapted for other regions)
+    if (!phoneNumber.startsWith('+')) {
+      // If it starts with 0, replace it with +91
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = '+91' + phoneNumber.substring(1);
+      } 
+      // If it doesn't have a country code, add +91
+      else if (!phoneNumber.startsWith('91')) {
+        phoneNumber = '+91' + phoneNumber;
+      }
+      // If it starts with 91 but no +, add +
+      else if (phoneNumber.startsWith('91')) {
+        phoneNumber = '+' + phoneNumber;
+      }
+    }
+    
+    // Create a dynamic message with customer details
+    let message = `*BISMI CHICKEN SHOP*\n\nHello ${customer.name},`;
+    
+    // Add pending amount info if applicable
+    if (customer.pendingAmount && customer.pendingAmount > 0) {
+      message += `\n\n*Current Pending Amount: ₹${customer.pendingAmount.toFixed(2)}*`;
+      message += `\n\nThis is a friendly reminder about your pending payment. Please settle at your earliest convenience.`;
+    } else {
+      message += `\n\nThank you for your business with us.`;
+    }
+    
+    // Add a closing message
+    message += `\n\nFor any queries, please contact us.`;
+    
+    return `https://wa.me/${phoneNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  };
   if (customers.length === 0) {
     return (
       <Card>
@@ -51,6 +92,30 @@ export default function CustomersList({
                   </span>
                 </div>
                 <div className="flex space-x-2">
+                  {createWhatsAppLink(customer) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a 
+                            href={createWhatsAppLink(customer) || "#"} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-9 w-9 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <i className="fab fa-whatsapp text-lg"></i>
+                            </Button>
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Send WhatsApp message</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -130,6 +195,30 @@ export default function CustomersList({
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center gap-2">
+                      {createWhatsAppLink(customer) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a 
+                                href={createWhatsAppLink(customer) || "#"} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <i className="fab fa-whatsapp"></i>
+                                </Button>
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Send WhatsApp message</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm" 
