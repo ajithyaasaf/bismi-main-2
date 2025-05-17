@@ -43,7 +43,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
   };
   
   // Create WhatsApp link for a customer
-  const createWhatsAppLink = (customerId: string) => {
+  const createWhatsAppLink = (customerId: string, specificOrder?: Order) => {
     const customer = getCustomer(customerId);
     if (!customer || !customer.contact) return null;
     
@@ -66,8 +66,33 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
       }
     }
     
-    // Default message (can be customized as needed)
-    const message = `Hello ${customer.name}, this is from Bismi Chicken Shop regarding your order.`;
+    // Create a dynamic message with order details and pending amount
+    let message = `*BISMI CHICKEN SHOP*\n\nHello ${customer.name},`;
+    
+    // Add pending amount info if applicable
+    if (customer.pendingAmount && customer.pendingAmount > 0) {
+      message += `\n\n*Current Pending Amount: ₹${customer.pendingAmount.toFixed(2)}*`;
+    }
+    
+    // If a specific order is provided, include its details
+    if (specificOrder) {
+      message += `\n\n*Order Details:*`;
+      message += `\n📅 Date: ${format(specificOrder.date ? new Date(specificOrder.date) : new Date(), 'MMM dd, yyyy')}`;
+      message += `\n💰 Amount: ₹${specificOrder.total.toFixed(2)}`;
+      message += `\n📦 Status: ${specificOrder.status === 'paid' ? 'Paid' : 'Pending'}`;
+      
+      // Add item details
+      message += `\n\n*Items Purchased:*`;
+      (specificOrder.items as OrderItem[]).forEach(item => {
+        message += `\n- ${item.quantity.toFixed(2)} kg ${item.type} (₹${item.rate.toFixed(2)}/kg)`;
+      });
+    } else {
+      // No specific order, just a general message
+      message += `\n\nThank you for your business with us.`;
+    }
+    
+    // Add a closing message
+    message += `\n\nFor any queries, please contact us.`;
     
     return `https://wa.me/${phoneNumber.replace('+', '')}?text=${encodeURIComponent(message)}`;
   };
@@ -131,12 +156,12 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                   </TableCell>
                   <TableCell className="font-medium flex items-center gap-2">
                     {getCustomerName(order.customerId)}
-                    {createWhatsAppLink(order.customerId) && (
+                    {createWhatsAppLink(order.customerId, order) && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <a 
-                              href={createWhatsAppLink(order.customerId) || "#"} 
+                              href={createWhatsAppLink(order.customerId, order) || "#"} 
                               target="_blank" 
                               rel="noopener noreferrer"
                             >
@@ -150,7 +175,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                             </a>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Send WhatsApp message</p>
+                            <p>Send order details via WhatsApp</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -218,12 +243,12 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                   <p className="text-sm text-gray-500">Customer</p>
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{getCustomerName(selectedOrder.customerId)}</p>
-                    {createWhatsAppLink(selectedOrder.customerId) && (
+                    {createWhatsAppLink(selectedOrder.customerId, selectedOrder) && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <a 
-                              href={createWhatsAppLink(selectedOrder.customerId) || "#"} 
+                              href={createWhatsAppLink(selectedOrder.customerId, selectedOrder) || "#"} 
                               target="_blank" 
                               rel="noopener noreferrer"
                             >
@@ -237,7 +262,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                             </a>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Send WhatsApp message</p>
+                            <p>Send order details via WhatsApp</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
