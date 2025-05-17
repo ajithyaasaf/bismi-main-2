@@ -17,13 +17,15 @@ interface CustomersListProps {
   onEdit: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
   onPayment: (customerId: string, customerName: string) => void;
+  onGenerateInvoice: (customer: Customer) => void;
 }
 
 export default function CustomersList({ 
   customers, 
   onEdit, 
   onDelete,
-  onPayment 
+  onPayment,
+  onGenerateInvoice
 }: CustomersListProps) {
   
   // Create WhatsApp link for a customer
@@ -225,18 +227,28 @@ export default function CustomersList({
                 </div>
               </div>
               
-              {customer.pendingAmount > 0 && (
-                <div className="p-3 bg-gray-50">
+              {/* Actions Section */}
+              <div className="p-3 bg-gray-50 space-y-2">
+                {customer.pendingAmount > 0 && (
                   <Button 
                     variant="outline"
-                    className="w-full justify-center text-green-600 border-green-200 hover:bg-green-50" 
+                    className="w-full justify-center text-green-600 border-green-200 hover:bg-green-50 mb-2" 
                     onClick={() => onPayment(customer.id, customer.name)}
                   >
                     <i className="fas fa-money-bill-wave mr-2"></i>
                     Record Payment
                   </Button>
-                </div>
-              )}
+                )}
+                
+                <Button 
+                  variant="outline"
+                  className="w-full justify-center text-blue-600 border-blue-200 hover:bg-blue-50" 
+                  onClick={() => onGenerateInvoice(customer)}
+                >
+                  <i className="fas fa-file-invoice mr-2"></i>
+                  Generate Invoice
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
