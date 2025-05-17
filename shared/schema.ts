@@ -85,6 +85,7 @@ export const orderItemSchema = z.object({
   type: z.string(),
   quantity: z.number(),
   rate: z.number(),
+  details: z.string().optional(), // Added new field for item details
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({

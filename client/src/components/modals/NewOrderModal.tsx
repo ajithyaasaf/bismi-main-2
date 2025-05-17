@@ -30,7 +30,8 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
     type: string;
     quantity: string;
     rate: string;
-  }[]>([{ id: '1', type: 'chicken', quantity: '', rate: '' }]);
+    details?: string;
+  }[]>([{ id: '1', type: 'chicken', quantity: '', rate: '', details: '' }]);
   const [paymentStatus, setPaymentStatus] = useState('paid');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -67,7 +68,8 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         id: String(items.length + 1), 
         type: 'chicken', 
         quantity: '', 
-        rate: '' 
+        rate: '',
+        details: '' // New field for additional item details
       }
     ]);
   };
@@ -210,7 +212,8 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           itemId: inventoryItem.id,
           type: item.type,
           quantity,
-          rate
+          rate,
+          details: item.details || '' // Include the details field in order items
         });
       }
       
@@ -455,7 +458,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
                     />
                   </div>
                   
-                  <div className="col-span-5 sm:col-span-3">
+                  <div className="col-span-5 sm:col-span-2">
                     <Label htmlFor={`item-rate-${item.id}`} className="text-xs mb-1 block">Rate (₹)</Label>
                     <Input
                       id={`item-rate-${item.id}`}
@@ -465,6 +468,18 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
                       value={item.rate}
                       onChange={(e) => updateItem(item.id, 'rate', e.target.value)}
                       className="h-9 text-sm"
+                    />
+                  </div>
+                  
+                  <div className="col-span-10 sm:col-span-4">
+                    <Label htmlFor={`item-details-${item.id}`} className="text-xs mb-1 block">Details</Label>
+                    <Input
+                      id={`item-details-${item.id}`}
+                      type="text"
+                      value={item.details || ''}
+                      onChange={(e) => updateItem(item.id, 'details', e.target.value)}
+                      className="h-9 text-sm"
+                      placeholder="Additional details about the meat"
                     />
                   </div>
                   
