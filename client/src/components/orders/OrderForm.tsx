@@ -68,7 +68,8 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
         id: String(items.length + 1), 
         type: itemTypes.length > 0 ? itemTypes[0].value : 'chicken', 
         quantity: '', 
-        rate: itemTypes.length > 0 ? String(itemTypes[0].rate) : '' 
+        rate: itemTypes.length > 0 ? String(itemTypes[0].rate) : '',
+        details: ''
       }
     ]);
   };
@@ -103,7 +104,7 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
     setCustomerId('');
     setCustomerName('');
     setCustomerPhone('');
-    setItems([{ id: '1', type: itemTypes.length > 0 ? itemTypes[0].value : 'chicken', quantity: '', rate: '' }]);
+    setItems([{ id: '1', type: itemTypes.length > 0 ? itemTypes[0].value : 'chicken', quantity: '', rate: '', details: '' }]);
     setPaymentStatus('paid');
   };
   
@@ -194,7 +195,8 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
           itemId: inventoryItem.id,
           type: item.type,
           quantity,
-          rate
+          rate,
+          details: item.details || ''
         });
       }
       
@@ -369,6 +371,17 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
                     value={item.rate}
                     onChange={(e) => updateItem(item.id, 'rate', e.target.value)}
                     className="h-8 text-xs"
+                  />
+                </div>
+                <div className="col-span-12 mt-1">
+                  <Label htmlFor={`item-details-${item.id}`} className="text-xs">Details</Label>
+                  <Input
+                    id={`item-details-${item.id}`}
+                    type="text"
+                    value={item.details || ''}
+                    onChange={(e) => updateItem(item.id, 'details', e.target.value)}
+                    className="h-8 text-xs"
+                    placeholder="Additional details about the meat"
                   />
                 </div>
                 <div className="col-span-1 flex justify-center">
