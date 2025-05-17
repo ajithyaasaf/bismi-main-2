@@ -3,8 +3,9 @@ import { Customer, Order, Transaction } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { PDFDownloadLink, Page, Text, View, Document, StyleSheet, PDFViewer } from '@react-pdf/renderer';
+import { PDFDownloadLink, Page, Text, View, Document, StyleSheet, PDFViewer, Image } from '@react-pdf/renderer';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import qrCodeImage from "../../assets/qr-code.jpg";
 
 // PDF styles
 const styles = StyleSheet.create({
@@ -12,6 +13,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     padding: 30,
     fontFamily: 'Helvetica',
+  },
+  monoFont: {
+    fontFamily: 'Courier',
+    fontVariant: 'normal',
   },
   header: {
     fontSize: 24,
@@ -186,10 +191,10 @@ const InvoicePDF = ({
         
         {/* Business Information */}
         <View style={styles.businessInfo}>
-          <Text style={styles.subheader}>Bismi Chicken Shop</Text>
-          <Text>127 Anna Salai, Coimbatore, Tamil Nadu</Text>
-          <Text>Phone: +91 95978 43210</Text>
-          <Text>Email: bismichicken@gmail.com</Text>
+          <Text style={styles.subheader}>Bismi Broiler's</Text>
+          <Text>Near Busstand, Hayarnisha Hospital</Text>
+          <Text>Mudukulathur</Text>
+          <Text>Phone: +91 8681087082</Text>
           <Text>GSTIN: 33AADCB1234F1Z5</Text>
         </View>
         
@@ -246,7 +251,7 @@ const InvoicePDF = ({
                     <Text style={[styles.tableCol, styles.tableColItems]}>
                       {formatOrderItems(order.items)}
                     </Text>
-                    <Text style={[styles.tableCol, styles.tableColAmount]}>
+                    <Text style={[styles.tableCol, styles.tableColAmount, styles.monoFont]}>
                       ₹{typeof order.total === 'number' ? order.total.toFixed(2) : order.total}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColStatus]}>
@@ -265,7 +270,7 @@ const InvoicePDF = ({
           {/* Total Row */}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Pending Amount:</Text>
-            <Text style={styles.totalValue}>₹{typeof totalPending === 'number' ? totalPending.toFixed(2) : totalPending}</Text>
+            <Text style={[styles.totalValue, styles.monoFont]}>₹{typeof totalPending === 'number' ? totalPending.toFixed(2) : totalPending}</Text>
           </View>
           
           {/* Overdue Alert */}
@@ -279,19 +284,21 @@ const InvoicePDF = ({
         {/* Payment Terms */}
         <View style={{marginTop: 20, marginBottom: 10}}>
           <Text style={{fontSize: 12, fontWeight: 'bold'}}>Payment Terms:</Text>
-          <Text style={{fontSize: 10, marginBottom: 5}}>1. Payment is due within 15 days of invoice date</Text>
-          <Text style={{fontSize: 10, marginBottom: 5}}>2. Please make payment via bank transfer or cash</Text>
+          <Text style={{fontSize: 10, marginBottom: 5}}>1. Please make payment via scanning QR code or using the mentioned Google Pay number</Text>
+          <Text style={{fontSize: 10, marginBottom: 5}}>2. Payment is due within 15 days of invoice date</Text>
           <Text style={{fontSize: 10, marginBottom: 5}}>3. Late payments may be subject to interest charges</Text>
         </View>
         
-        {/* Bank Details */}
+        {/* Payment Details */}
         <View style={{marginBottom: 20}}>
-          <Text style={{fontSize: 12, fontWeight: 'bold'}}>Bank Details:</Text>
-          <Text style={{fontSize: 10, marginBottom: 3}}>Bank Name: State Bank of India</Text>
-          <Text style={{fontSize: 10, marginBottom: 3}}>Account Name: Bismi Chicken Shop</Text>
-          <Text style={{fontSize: 10, marginBottom: 3}}>Account Number: 3582********63</Text>
-          <Text style={{fontSize: 10, marginBottom: 3}}>IFSC: SBIN0011729</Text>
-          <Text style={{fontSize: 10, marginBottom: 3}}>Branch: Anna Salai, Coimbatore</Text>
+          <Text style={{fontSize: 12, fontWeight: 'bold'}}>Payment Details:</Text>
+          <Text style={{fontSize: 10, marginBottom: 3}}>Google Pay Number: +91 9514499968</Text>
+          <Text style={{fontSize: 10, marginBottom: 10}}>Please scan the QR code below for instant payment:</Text>
+          
+          {/* QR Code */}
+          <View style={{alignItems: 'center', marginBottom: 10}}>
+            <Image src={qrCodeImage} style={{width: 120, height: 120}} />
+          </View>
         </View>
         
         {/* Footer */}
