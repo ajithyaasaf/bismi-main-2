@@ -31,6 +31,59 @@ export default async (req, res) => {
           const supplier = await storage.getSupplier(id);
           return supplier ? res.json(supplier) : res.status(404).json({ error: 'Supplier not found' });
         }
+      } else if (req.method === 'DELETE') {
+        const id = path.split('/')[1];
+        const success = await storage.deleteSupplier(id);
+        return success 
+          ? res.json({ message: 'Supplier deleted successfully' }) 
+          : res.status(404).json({ message: 'Supplier not found' });
+      } else if (req.method === 'PUT') {
+        const id = path.split('/')[1];
+        const supplierData = req.body;
+        const updatedSupplier = await storage.updateSupplier(id, supplierData);
+        return updatedSupplier 
+          ? res.json(updatedSupplier) 
+          : res.status(404).json({ message: 'Supplier not found' });
+      } else if (req.method === 'POST') {
+        if (path === 'suppliers') {
+          const supplierData = req.body;
+          const newSupplier = await storage.createSupplier(supplierData);
+          return res.status(201).json(newSupplier);
+        } else if (path.includes('/payment')) {
+          const id = path.split('/')[1];
+          const paymentData = req.body;
+          
+          if (!paymentData.amount) {
+            return res.status(400).json({ message: 'Payment amount is required' });
+          }
+          
+          // Create a transaction for the payment
+          const transaction = {
+            entityId: id,
+            entityType: 'supplier',
+            type: 'payment',
+            amount: paymentData.amount,
+            description: `Payment to supplier: ${paymentData.name || ''}`,
+            date: new Date()
+          };
+          
+          const newTransaction = await storage.createTransaction(transaction);
+          
+          // Update supplier debt if applicable
+          const supplier = await storage.getSupplier(id);
+          if (supplier && supplier.debt) {
+            const updatedSupplier = await storage.updateSupplier(id, {
+              debt: Math.max(0, supplier.debt - paymentData.amount)
+            });
+            
+            return res.json({
+              transaction: newTransaction,
+              supplier: updatedSupplier
+            });
+          }
+          
+          return res.json({ transaction: newTransaction });
+        }
       }
     }
     
@@ -43,6 +96,59 @@ export default async (req, res) => {
           const id = path.split('/')[1];
           const customer = await storage.getCustomer(id);
           return customer ? res.json(customer) : res.status(404).json({ error: 'Customer not found' });
+        }
+      } else if (req.method === 'DELETE') {
+        const id = path.split('/')[1];
+        const success = await storage.deleteCustomer(id);
+        return success 
+          ? res.json({ message: 'Customer deleted successfully' }) 
+          : res.status(404).json({ message: 'Customer not found' });
+      } else if (req.method === 'PUT') {
+        const id = path.split('/')[1];
+        const customerData = req.body;
+        const updatedCustomer = await storage.updateCustomer(id, customerData);
+        return updatedCustomer 
+          ? res.json(updatedCustomer) 
+          : res.status(404).json({ message: 'Customer not found' });
+      } else if (req.method === 'POST') {
+        if (path === 'customers') {
+          const customerData = req.body;
+          const newCustomer = await storage.createCustomer(customerData);
+          return res.status(201).json(newCustomer);
+        } else if (path.includes('/payment')) {
+          const id = path.split('/')[1];
+          const paymentData = req.body;
+          
+          if (!paymentData.amount) {
+            return res.status(400).json({ message: 'Payment amount is required' });
+          }
+          
+          // Create a transaction for the payment
+          const transaction = {
+            entityId: id,
+            entityType: 'customer',
+            type: 'payment',
+            amount: paymentData.amount,
+            description: `Payment from customer: ${paymentData.name || ''}`,
+            date: new Date()
+          };
+          
+          const newTransaction = await storage.createTransaction(transaction);
+          
+          // Update customer pending amount if applicable
+          const customer = await storage.getCustomer(id);
+          if (customer && customer.pendingAmount) {
+            const updatedCustomer = await storage.updateCustomer(id, {
+              pendingAmount: Math.max(0, customer.pendingAmount - paymentData.amount)
+            });
+            
+            return res.json({
+              transaction: newTransaction,
+              customer: updatedCustomer
+            });
+          }
+          
+          return res.json({ transaction: newTransaction });
         }
       }
     }
@@ -114,6 +220,25 @@ export default async (req, res) => {
           const id = path.split('/')[1];
           const transaction = await storage.getTransaction(id);
           return transaction ? res.json(transaction) : res.status(404).json({ error: 'Transaction not found' });
+        }
+      } else if (req.method === 'DELETE') {
+        const id = path.split('/')[1];
+        const success = await storage.deleteTransaction(id);
+        return success 
+          ? res.json({ message: 'Transaction deleted successfully' }) 
+          : res.status(404).json({ message: 'Transaction not found' });
+      } else if (req.method === 'PUT') {
+        const id = path.split('/')[1];
+        const transactionData = req.body;
+        const updatedTransaction = await storage.updateTransaction(id, transactionData);
+        return updatedTransaction 
+          ? res.json(updatedTransaction) 
+          : res.status(404).json({ message: 'Transaction not found' });
+      } else if (req.method === 'POST') {
+        if (path === 'transactions') {
+          const transactionData = req.body;
+          const newTransaction = await storage.createTransaction(transactionData);
+          return res.status(201).json(newTransaction);
         }
       }
     }
