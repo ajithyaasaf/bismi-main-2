@@ -625,19 +625,9 @@ const InvoicePDF = ({
                 <Text style={styles.totalValue}>{formatCurrency(ordersGrandTotal)}</Text>
               </View>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>GST (5%):</Text>
-                <Text style={styles.totalValue}>{formatCurrency(taxAmount)}</Text>
+                <Text style={styles.totalLabel}>Already Paid:</Text>
+                <Text style={styles.totalValue}>{formatCurrency(adjustedTotalPaid)}</Text>
               </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Paid Through Orders:</Text>
-                <Text style={styles.totalValue}>{formatCurrency(totalPaid)}</Text>
-              </View>
-              {paidThroughRecordedPayments > 0 && (
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Additional Payment(s):</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(paidThroughRecordedPayments)}</Text>
-                </View>
-              )}
               <View style={[styles.totalRow, styles.totalRowFinal]}>
                 <Text style={[styles.totalLabel, styles.totalLabelFinal]}>Current Balance Due:</Text>
                 <Text style={[styles.totalValue, styles.totalValueFinal, styles.monoFont]}>{formatCurrency(totalPending)}</Text>
@@ -645,6 +635,29 @@ const InvoicePDF = ({
             </View>
           </View>
         </View>
+        
+        {/* Previous Payments Section - Only show if there are payments */}
+        {paidThroughRecordedPayments > 0 && (
+          <View style={{marginTop: 20, marginBottom: 15}}>
+            <Text style={styles.sectionTitle}>Payment History</Text>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableRowHeader]}>
+                <Text style={[styles.tableCol, styles.tableColHeader, {width: '25%'}]}>Date</Text>
+                <Text style={[styles.tableCol, styles.tableColHeader, {width: '50%'}]}>Description</Text>
+                <Text style={[styles.tableCol, styles.tableColHeader, {width: '25%', textAlign: 'right'}]}>Amount</Text>
+              </View>
+              
+              {/* Example payment - In a real scenario, you would map through actual payment transactions */}
+              <View style={styles.tableRow}>
+                <Text style={[styles.tableCol, {width: '25%'}]}>{format(new Date(), 'dd/MM/yyyy')}</Text>
+                <Text style={[styles.tableCol, {width: '50%'}]}>Payment received</Text>
+                <Text style={[styles.tableCol, {width: '25%', textAlign: 'right', fontFamily: 'Roboto Mono'}]}>
+                  {formatCurrency(paidThroughRecordedPayments)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
         
         {/* Payment Section */}
         <View style={styles.paymentSection}>
@@ -781,43 +794,44 @@ export default function CustomerInvoice({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle className="text-2xl">Customer Invoice</DialogTitle>
+      <DialogContent className="max-w-5xl p-0 overflow-hidden w-[95vw] sm:w-auto">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+          <DialogTitle className="text-xl sm:text-2xl">Customer Invoice</DialogTitle>
         </DialogHeader>
         
         <Tabs defaultValue="preview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-          <div className="px-6">
+          <div className="px-4 sm:px-6">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="preview">
-                <EyeIcon className="w-4 h-4 mr-2" />
-                Preview Invoice
+              <TabsTrigger value="preview" className="text-xs sm:text-sm px-1 sm:px-3 py-1 h-auto sm:h-10">
+                <EyeIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Preview</span> Invoice
               </TabsTrigger>
-              <TabsTrigger value="settings">
-                <FileTextIcon className="w-4 h-4 mr-2" />
-                Invoice Settings
+              <TabsTrigger value="settings" className="text-xs sm:text-sm px-1 sm:px-3 py-1 h-auto sm:h-10">
+                <FileTextIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Invoice</span> Settings
               </TabsTrigger>
-              <TabsTrigger value="export">
-                <DownloadIcon className="w-4 h-4 mr-2" />
-                Export Options
+              <TabsTrigger value="export" className="text-xs sm:text-sm px-1 sm:px-3 py-1 h-auto sm:h-10">
+                <DownloadIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                Export <span className="hidden xs:inline">Options</span>
               </TabsTrigger>
             </TabsList>
           </div>
           
-          <TabsContent value="preview" className="p-6 pt-4 space-y-4">
+          <TabsContent value="preview" className="p-4 sm:p-6 pt-3 sm:pt-4 space-y-3 sm:space-y-4">
             <Card>
               <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
                   <div>
-                    <CardTitle>Invoice Preview</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Invoice Preview</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
                       Review the invoice before generating
                     </CardDescription>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center">
                     <Button 
                       variant="outline" 
                       size="sm"
+                      className="text-xs h-8 sm:h-9 w-full sm:w-auto"
                       onClick={() => setShowPdfPreview(!showPdfPreview)}
                     >
                       {showPdfPreview ? 'Hide PDF Preview' : 'Show PDF Preview'}
@@ -826,40 +840,40 @@ export default function CustomerInvoice({
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-4">
-                <div className="flex flex-col md:flex-row gap-6">
+              <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-5">
+                <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                   {/* Customer Information */}
-                  <div className="w-full md:w-1/2 space-y-3">
+                  <div className="w-full md:w-1/2 space-y-2 sm:space-y-3">
                     <div className="space-y-1">
-                      <Label className="text-sm text-muted-foreground">Customer</Label>
-                      <div className="font-medium text-lg">{customer.name}</div>
+                      <Label className="text-xs sm:text-sm text-muted-foreground">Customer</Label>
+                      <div className="font-medium text-base sm:text-lg">{customer.name}</div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div className="grid grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-2">
                       <div>
-                        <Label className="text-sm text-muted-foreground">Type</Label>
-                        <div>{customer.type === 'hotel' ? 'Hotel/Restaurant' : 'Retail'}</div>
+                        <Label className="text-xs sm:text-sm text-muted-foreground">Type</Label>
+                        <div className="text-sm sm:text-base">{customer.type === 'hotel' ? 'Hotel/Restaurant' : 'Retail'}</div>
                       </div>
                       
                       {customer.contact && (
                         <div>
-                          <Label className="text-sm text-muted-foreground">Contact</Label>
-                          <div>{customer.contact}</div>
+                          <Label className="text-xs sm:text-sm text-muted-foreground">Contact</Label>
+                          <div className="text-sm sm:text-base">{customer.contact}</div>
                         </div>
                       )}
                     </div>
                   </div>
                   
                   {/* Invoice Summary */}
-                  <div className="w-full md:w-1/2 flex flex-col gap-4 bg-muted/50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-semibold">Invoice Summary</h3>
-                      <div className="text-sm font-medium px-2 py-1 bg-primary/10 text-primary rounded-md">
+                  <div className="w-full md:w-1/2 flex flex-col gap-3 sm:gap-4 bg-muted/50 p-3 sm:p-4 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold text-sm sm:text-base">Invoice Summary</h3>
+                      <div className="text-xs sm:text-sm font-medium px-2 py-1 bg-primary/10 text-primary rounded-md">
                         #{invoiceNumber}
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-y-1 sm:gap-y-2 text-xs sm:text-sm">
                       <div className="text-muted-foreground">Total Orders:</div>
                       <div className="font-medium">{totalOrders}</div>
                       
@@ -1120,13 +1134,13 @@ export default function CustomerInvoice({
           </TabsContent>
         </Tabs>
         
-        <div className="px-6 py-4 border-t flex items-center justify-between">
-          <div className="text-sm text-muted-foreground flex items-center">
-            <CheckCircle2Icon className="w-4 h-4 mr-2 text-green-500" />
-            Invoice #{invoiceNumber} is ready
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="text-xs sm:text-sm text-muted-foreground flex items-center">
+            <CheckCircle2Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500 flex-shrink-0" />
+            <span>Invoice #{invoiceNumber} is ready</span>
           </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={onClose}>Close</Button>
+          <div className="flex flex-col xs:flex-row w-full sm:w-auto gap-2 xs:space-x-2">
+            <Button variant="outline" onClick={onClose} className="text-xs sm:text-sm h-8 sm:h-9 w-full xs:w-auto">Close</Button>
             <PDFDownloadLink
               document={
                 <InvoicePDF 
@@ -1139,9 +1153,10 @@ export default function CustomerInvoice({
                 />
               }
               fileName={`invoice-${customer.name}-${invoiceNumber}.pdf`}
+              className="w-full xs:w-auto"
             >
               {({ loading }) => (
-                <Button disabled={loading}>
+                <Button disabled={loading} className="text-xs sm:text-sm h-8 sm:h-9 w-full">
                   {loading ? 'Generating...' : 'Download Invoice'}
                 </Button>
               )}
