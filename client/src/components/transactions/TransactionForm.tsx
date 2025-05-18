@@ -96,8 +96,36 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
         description: description || `${type === 'payment' ? 'Payment to' : 'Receipt from'} ${getEntityName(entityId)}`
       };
       
-      // Create transaction
-      await apiRequest('POST', '/api/transactions', transactionData);
+      // Check for Vercel deployment
+      const isVercelDeployment = window.location.hostname.includes('.vercel.app') || 
+                               window.location.hostname.includes('.replit.app');
+      
+      // Import services dynamically to handle Vercel error gracefully
+      let firestoreSuccess = false;
+      
+      try {
+        // Try to save directly to Firestore first
+        const TransactionService = await import('@/lib/transaction-service');
+        const result = await TransactionService.addTransaction(transactionData);
+        console.log("Transaction added to Firestore successfully:", result);
+        firestoreSuccess = true;
+      } catch (firestoreError) {
+        console.error("Error adding transaction to Firestore:", firestoreError);
+      }
+      
+      try {
+        // Create transaction via API
+        await apiRequest('POST', '/api/transactions', transactionData);
+        console.log("Transaction created via API successfully");
+      } catch (apiError: any) {
+        // Special handling for Vercel 405 errors
+        if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
+          console.log("API returned 405 in Vercel but Firestore creation succeeded");
+        } else if (!firestoreSuccess) {
+          // Only throw if neither operation succeeded
+          throw apiError;
+        }
+      }
       
       // Show success message
       toast({
@@ -118,6 +146,7 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
       // Close modal
       onClose();
     } catch (error) {
+      console.error("Failed to create transaction:", error);
       toast({
         title: "Error",
         description: "Failed to create transaction",

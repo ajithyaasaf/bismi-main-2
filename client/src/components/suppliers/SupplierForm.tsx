@@ -77,7 +77,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
         try {
           await apiRequest('PUT', `/api/suppliers/${supplier.id}`, supplierData);
           console.log("Supplier updated via API successfully");
-        } catch (apiError) {
+        } catch (apiError: any) {
           // If we're in Vercel and the error is 405, treat as success if Firestore worked
           if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
             console.log("API returned 405 in Vercel but Firestore update succeeded");
@@ -105,7 +105,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
         try {
           await apiRequest('POST', '/api/suppliers', supplierData);
           console.log("Supplier added via API successfully");
-        } catch (apiError) {
+        } catch (apiError: any) {
           // If we're in Vercel and the error is 405, treat as success if Firestore worked
           if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
             console.log("API returned 405 in Vercel but Firestore creation succeeded");

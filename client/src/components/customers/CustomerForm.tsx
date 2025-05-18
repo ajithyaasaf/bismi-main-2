@@ -75,7 +75,7 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
         try {
           await apiRequest('PUT', `/api/customers/${customer.id}`, customerData);
           console.log("Customer updated via API");
-        } catch (apiError) {
+        } catch (apiError: any) {
           console.log("API update failed, using direct Firestore update", apiError);
           // Don't fail if we're in Vercel and getting a 405 - we'll handle with Firestore
           if (!(isVercelDeployment && apiError.message?.includes('405'))) {
@@ -113,7 +113,7 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
           try {
             await apiRequest('POST', '/api/customers', customerData);
             console.log("Customer also saved via API");
-          } catch (apiError) {
+          } catch (apiError: any) {
             // For Vercel, 405 errors are expected but Firestore should work
             if (isVercelDeployment && apiError.message?.includes('405')) {
               console.log("API returned 405 in Vercel, but Firestore operation succeeded");
