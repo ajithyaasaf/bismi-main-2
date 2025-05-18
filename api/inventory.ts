@@ -27,11 +27,24 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
+  // Get the inventory item ID from the URL if present
+  const urlParts = req.url?.split('/') || [];
+  const itemId = urlParts[urlParts.length - 1];
+
   try {
+    // GET - Get all inventory items or a specific item
     if (req.method === 'GET') {
+      if (itemId && itemId !== 'inventory') {
+        const item = inventory.find(i => i.id === itemId);
+        if (!item) {
+          return res.status(404).json({ error: 'Inventory item not found' });
+        }
+        return res.status(200).json(item);
+      }
       return res.status(200).json(inventory);
     } 
     
+    // POST - Create a new inventory item
     if (req.method === 'POST') {
       const newItem = {
         id: uuidv4(),
@@ -42,6 +55,46 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       };
       inventory.push(newItem);
       return res.status(201).json(newItem);
+    }
+    
+    // PUT - Update existing inventory item
+    if (req.method === 'PUT') {
+      if (!itemId || itemId === 'inventory') {
+        return res.status(400).json({ error: 'Inventory item ID is required' });
+      }
+      
+      const itemIndex = inventory.findIndex(i => i.id === itemId);
+      if (itemIndex === -1) {
+        return res.status(404).json({ error: 'Inventory item not found' });
+      }
+      
+      // Update the inventory item with new data
+      const updatedItem = {
+        ...inventory[itemIndex],
+        type: req.body?.type || inventory[itemIndex].type,
+        quantity: req.body?.quantity !== undefined ? req.body.quantity : inventory[itemIndex].quantity,
+        rate: req.body?.rate !== undefined ? req.body.rate : inventory[itemIndex].rate,
+        updatedAt: new Date() // Always update the timestamp
+      };
+      
+      inventory[itemIndex] = updatedItem;
+      return res.status(200).json(updatedItem);
+    }
+    
+    // DELETE - Remove an inventory item
+    if (req.method === 'DELETE') {
+      if (!itemId || itemId === 'inventory') {
+        return res.status(400).json({ error: 'Inventory item ID is required' });
+      }
+      
+      const itemIndex = inventory.findIndex(i => i.id === itemId);
+      if (itemIndex === -1) {
+        return res.status(404).json({ error: 'Inventory item not found' });
+      }
+      
+      // Remove the inventory item
+      inventory.splice(itemIndex, 1);
+      return res.status(200).json({ message: 'Inventory item deleted successfully' });
     }
     
     // Method not allowed

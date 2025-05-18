@@ -28,11 +28,24 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
+  // Get the customer ID from the URL if present
+  const urlParts = req.url?.split('/') || [];
+  const customerId = urlParts[urlParts.length - 1];
+
   try {
+    // GET - Get all customers or a specific customer
     if (req.method === 'GET') {
+      if (customerId && customerId !== 'customers') {
+        const customer = customers.find(c => c.id === customerId);
+        if (!customer) {
+          return res.status(404).json({ error: 'Customer not found' });
+        }
+        return res.status(200).json(customer);
+      }
       return res.status(200).json(customers);
     } 
     
+    // POST - Create a new customer
     if (req.method === 'POST') {
       const newCustomer = {
         id: uuidv4(),
@@ -44,6 +57,46 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       };
       customers.push(newCustomer);
       return res.status(201).json(newCustomer);
+    }
+    
+    // PUT - Update existing customer
+    if (req.method === 'PUT') {
+      if (!customerId || customerId === 'customers') {
+        return res.status(400).json({ error: 'Customer ID is required' });
+      }
+      
+      const customerIndex = customers.findIndex(c => c.id === customerId);
+      if (customerIndex === -1) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+      
+      // Update the customer with new data
+      const updatedCustomer = {
+        ...customers[customerIndex],
+        name: req.body?.name || customers[customerIndex].name,
+        type: req.body?.type || customers[customerIndex].type,
+        contact: req.body?.contact !== undefined ? req.body.contact : customers[customerIndex].contact,
+        pendingAmount: req.body?.pendingAmount !== undefined ? req.body.pendingAmount : customers[customerIndex].pendingAmount,
+      };
+      
+      customers[customerIndex] = updatedCustomer;
+      return res.status(200).json(updatedCustomer);
+    }
+    
+    // DELETE - Remove a customer
+    if (req.method === 'DELETE') {
+      if (!customerId || customerId === 'customers') {
+        return res.status(400).json({ error: 'Customer ID is required' });
+      }
+      
+      const customerIndex = customers.findIndex(c => c.id === customerId);
+      if (customerIndex === -1) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+      
+      // Remove the customer
+      customers.splice(customerIndex, 1);
+      return res.status(200).json({ message: 'Customer deleted successfully' });
     }
     
     // Method not allowed

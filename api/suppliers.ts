@@ -27,11 +27,24 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
+  // Get the supplier ID from the URL if present
+  const urlParts = req.url?.split('/') || [];
+  const supplierId = urlParts[urlParts.length - 1];
+
   try {
+    // GET - Get all suppliers or a specific supplier
     if (req.method === 'GET') {
+      if (supplierId && supplierId !== 'suppliers') {
+        const supplier = suppliers.find(s => s.id === supplierId);
+        if (!supplier) {
+          return res.status(404).json({ error: 'Supplier not found' });
+        }
+        return res.status(200).json(supplier);
+      }
       return res.status(200).json(suppliers);
     } 
     
+    // POST - Create a new supplier
     if (req.method === 'POST') {
       const newSupplier = {
         id: uuidv4(),
@@ -42,6 +55,45 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       };
       suppliers.push(newSupplier);
       return res.status(201).json(newSupplier);
+    }
+    
+    // PUT - Update existing supplier
+    if (req.method === 'PUT') {
+      if (!supplierId || supplierId === 'suppliers') {
+        return res.status(400).json({ error: 'Supplier ID is required' });
+      }
+      
+      const supplierIndex = suppliers.findIndex(s => s.id === supplierId);
+      if (supplierIndex === -1) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+      
+      // Update the supplier with new data
+      const updatedSupplier = {
+        ...suppliers[supplierIndex],
+        name: req.body?.name || suppliers[supplierIndex].name,
+        debt: req.body?.debt !== undefined ? req.body.debt : suppliers[supplierIndex].debt,
+        contact: req.body?.contact !== undefined ? req.body.contact : suppliers[supplierIndex].contact,
+      };
+      
+      suppliers[supplierIndex] = updatedSupplier;
+      return res.status(200).json(updatedSupplier);
+    }
+    
+    // DELETE - Remove a supplier
+    if (req.method === 'DELETE') {
+      if (!supplierId || supplierId === 'suppliers') {
+        return res.status(400).json({ error: 'Supplier ID is required' });
+      }
+      
+      const supplierIndex = suppliers.findIndex(s => s.id === supplierId);
+      if (supplierIndex === -1) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+      
+      // Remove the supplier
+      suppliers.splice(supplierIndex, 1);
+      return res.status(200).json({ message: 'Supplier deleted successfully' });
     }
     
     // Method not allowed
