@@ -760,11 +760,39 @@ export default function CustomerInvoice({
     const fetchCustomerPayments = async () => {
       try {
         if (customer?.id) {
-          // Fetch all transactions for this customer
-          const payments = await getTransactionsByEntity(customer.id, 'customer');
-          // Filter to only include receipt type transactions (payments received)
-          const filteredPayments = payments.filter(payment => payment.type === 'receipt');
-          setCustomerPayments(filteredPayments);
+          // First try to load transactions from the client/server API
+          try {
+            const response = await fetch(`/api/transactions?entityId=${customer.id}&entityType=customer&type=receipt`);
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              setCustomerPayments(data);
+              return;
+            }
+          } catch (apiError) {
+            console.error("Error fetching from API:", apiError);
+          }
+          
+          // If API fails, try Firestore directly
+          try {
+            // Fetch all transactions for this customer
+            const payments = await getTransactionsByEntity(customer.id, 'customer');
+            
+            // Filter to only include receipt type transactions (payments received)
+            const filteredPayments = payments
+              .filter((payment: any) => payment && payment.type === 'receipt')
+              .map((payment: any) => ({
+                ...payment,
+                id: payment.id || payment.firebaseId || `payment-${Math.random().toString(36).substring(2, 9)}`,
+                date: payment.date || new Date(),
+                amount: payment.amount || 0,
+                description: payment.description || 'Payment received'
+              }));
+              
+            setCustomerPayments(filteredPayments);
+          } catch (firestoreError) {
+            console.error("Error fetching from Firestore:", firestoreError);
+            throw firestoreError;
+          }
         }
       } catch (error) {
         console.error("Error fetching customer payments:", error);
