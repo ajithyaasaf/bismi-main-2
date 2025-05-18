@@ -57,6 +57,19 @@ export default async (req, res) => {
           const item = await storage.getInventoryItem(id);
           return item ? res.json(item) : res.status(404).json({ error: 'Inventory item not found' });
         }
+      } else if (req.method === 'DELETE') {
+        const id = path.split('/')[1];
+        const success = await storage.deleteInventoryItem(id);
+        return success 
+          ? res.json({ message: 'Inventory item deleted successfully' }) 
+          : res.status(404).json({ message: 'Inventory item not found' });
+      } else if (req.method === 'PUT') {
+        const id = path.split('/')[1];
+        const itemData = req.body;
+        const updatedItem = await storage.updateInventoryItem(id, itemData);
+        return updatedItem 
+          ? res.json(updatedItem) 
+          : res.status(404).json({ message: 'Inventory item not found' });
       }
     }
     
@@ -69,6 +82,25 @@ export default async (req, res) => {
           const id = path.split('/')[1];
           const order = await storage.getOrder(id);
           return order ? res.json(order) : res.status(404).json({ error: 'Order not found' });
+        }
+      } else if (req.method === 'DELETE') {
+        const id = path.split('/')[1];
+        const success = await storage.deleteOrder(id);
+        return success 
+          ? res.json({ message: 'Order deleted successfully' }) 
+          : res.status(404).json({ message: 'Order not found' });
+      } else if (req.method === 'PUT') {
+        const id = path.split('/')[1];
+        const orderData = req.body;
+        const updatedOrder = await storage.updateOrder(id, orderData);
+        return updatedOrder 
+          ? res.json(updatedOrder) 
+          : res.status(404).json({ message: 'Order not found' });
+      } else if (req.method === 'POST') {
+        if (path === 'orders') {
+          const orderData = req.body;
+          const newOrder = await storage.createOrder(orderData);
+          return res.status(201).json(newOrder);
         }
       }
     }
