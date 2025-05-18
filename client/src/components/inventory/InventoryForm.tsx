@@ -78,17 +78,35 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
         rate: rateValue,
       };
       
+      // Check for Vercel deployment
+      const isVercelDeployment = window.location.hostname.includes('.vercel.app') || 
+                                window.location.hostname.includes('.replit.app');
+      
+      let firestoreSuccess = false;
+      
       if (isEditing && item) {
         // First update directly in Firestore
         try {
           await InventoryService.updateInventoryItem(item.id, itemData);
           console.log("Inventory item updated in Firestore successfully");
+          firestoreSuccess = true;
         } catch (firestoreError) {
           console.error("Error updating inventory item in Firestore:", firestoreError);
         }
         
         // Then update via API for backward compatibility
-        await apiRequest('PUT', `/api/inventory/${item.id}`, itemData);
+        try {
+          await apiRequest('PUT', `/api/inventory/${item.id}`, itemData);
+          console.log("Inventory item updated via API successfully");
+        } catch (apiError: any) {
+          // Special handling for Vercel 405 errors
+          if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
+            console.log("API returned 405 in Vercel but Firestore update succeeded");
+          } else if (!firestoreSuccess) {
+            // Only throw if neither operation succeeded
+            throw apiError;
+          }
+        }
         
         toast({
           title: "Inventory updated",
@@ -99,12 +117,24 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
         try {
           const newItem = await InventoryService.addInventoryItem(itemData);
           console.log("Inventory item added to Firestore successfully:", newItem);
+          firestoreSuccess = true;
         } catch (firestoreError) {
           console.error("Error adding inventory item to Firestore:", firestoreError);
         }
         
         // Then create via API for backward compatibility
-        await apiRequest('POST', '/api/inventory', itemData);
+        try {
+          await apiRequest('POST', '/api/inventory', itemData);
+          console.log("Inventory item added via API successfully");
+        } catch (apiError: any) {
+          // Special handling for Vercel 405 errors
+          if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
+            console.log("API returned 405 in Vercel but Firestore creation succeeded");
+          } else if (!firestoreSuccess) {
+            // Only throw if neither operation succeeded
+            throw apiError;
+          }
+        }
         
         toast({
           title: "Item added",

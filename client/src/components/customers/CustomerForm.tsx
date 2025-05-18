@@ -60,18 +60,41 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
         pendingAmount: pendingValue,
       };
       
-      console.log("Saving customer data directly to Firestore:", customerData);
+      // Check for Vercel deployment
+      const isVercelDeployment = window.location.hostname.includes('.vercel.app') || 
+                                window.location.hostname.includes('.replit.app');
+      
+      let firestoreSuccess = false;
+      
+      console.log("Saving customer data:", customerData);
       
       if (isEditing && customer) {
-        // First try the API for consistency with the rest of the app
+        // Try both operations, with Firestore as the source of truth
+        
+        // Try API first
         try {
           await apiRequest('PUT', `/api/customers/${customer.id}`, customerData);
           console.log("Customer updated via API");
         } catch (apiError) {
           console.log("API update failed, using direct Firestore update", apiError);
-          // Fallback: Update directly in Firestore
+          // Don't fail if we're in Vercel and getting a 405 - we'll handle with Firestore
+          if (!(isVercelDeployment && apiError.message?.includes('405'))) {
+            // Only throw if this is not a Vercel 405 error
+            console.error("API error not related to Vercel 405:", apiError);
+          }
+        }
+        
+        // Always try Firestore update
+        try {
           const result = await CustomerService.updateCustomer(customer.id, customerData);
           console.log("Customer updated directly in Firestore:", result);
+          firestoreSuccess = true;
+        } catch (firestoreError) {
+          console.error("Firestore update failed:", firestoreError);
+          if (!firestoreSuccess) {
+            // If both operations failed, rethrow the error
+            throw firestoreError;
+          }
         }
         
         toast({
@@ -79,18 +102,24 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
           description: `${name} has been updated successfully`,
         });
       } else {
-        // Always add to Firestore directly for new customers
+        // New customer - try Firestore first, then API
         try {
           // Directly add to Firestore for most reliable operation
           const result = await CustomerService.addCustomer(customerData);
           console.log("Customer added to Firestore:", result);
+          firestoreSuccess = true;
           
-          // Also try the API to keep the server data in sync (but don't fail if it errors)
+          // Also try the API to keep the server data in sync
           try {
             await apiRequest('POST', '/api/customers', customerData);
             console.log("Customer also saved via API");
           } catch (apiError) {
-            console.log("API creation failed, but Firestore update succeeded", apiError);
+            // For Vercel, 405 errors are expected but Firestore should work
+            if (isVercelDeployment && apiError.message?.includes('405')) {
+              console.log("API returned 405 in Vercel, but Firestore operation succeeded");
+            } else {
+              console.error("API creation failed, but Firestore update succeeded:", apiError);
+            }
           }
           
           toast({
@@ -98,16 +127,21 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
             description: `${name} has been added successfully`,
           });
         } catch (firestoreError) {
-          console.error("Firestore save failed, trying API as fallback", firestoreError);
+          console.error("Firestore save failed, trying API as fallback:", firestoreError);
           
           // Firestore failed, try API as fallback
-          await apiRequest('POST', '/api/customers', customerData);
-          console.log("Customer saved via API fallback");
-          
-          toast({
-            title: "Customer added",
-            description: `${name} has been added successfully (via server)`,
-          });
+          try {
+            await apiRequest('POST', '/api/customers', customerData);
+            console.log("Customer saved via API fallback");
+            
+            toast({
+              title: "Customer added",
+              description: `${name} has been added successfully (via server)`,
+            });
+          } catch (apiError) {
+            console.error("Both Firestore and API operations failed:", apiError);
+            throw apiError; // Rethrow to show error toast
+          }
         }
       }
       
