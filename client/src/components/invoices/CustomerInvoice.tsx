@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { CalendarIcon, SaveIcon, FileTextIcon, PrinterIcon, MailIcon, ShareIcon, InfoIcon, AlertTriangleIcon, CreditCardIcon, CheckCircle2Icon, ClipboardCopyIcon, DownloadIcon, EyeIcon, SearchIcon, TrashIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getTransactionsByEntity } from '@/lib/transaction-service';
 import qrCodeImage from "../../assets/qr-code.jpg";
 
 // Register custom fonts
@@ -636,8 +637,8 @@ const InvoicePDF = ({
           </View>
         </View>
         
-        {/* Previous Payments Section - Only show if there are payments */}
-        {paidThroughRecordedPayments > 0 && (
+        {/* Payment History Section */}
+        {customerPayments && customerPayments.length > 0 && (
           <View style={{marginTop: 20, marginBottom: 15}}>
             <Text style={styles.sectionTitle}>Payment History</Text>
             <View style={styles.table}>
@@ -647,14 +648,19 @@ const InvoicePDF = ({
                 <Text style={[styles.tableCol, styles.tableColHeader, {width: '25%', textAlign: 'right'}]}>Amount</Text>
               </View>
               
-              {/* Example payment - In a real scenario, you would map through actual payment transactions */}
-              <View style={styles.tableRow}>
-                <Text style={[styles.tableCol, {width: '25%'}]}>{format(new Date(), 'dd/MM/yyyy')}</Text>
-                <Text style={[styles.tableCol, {width: '50%'}]}>Payment received</Text>
-                <Text style={[styles.tableCol, {width: '25%', textAlign: 'right', fontFamily: 'Roboto Mono'}]}>
-                  {formatCurrency(paidThroughRecordedPayments)}
-                </Text>
-              </View>
+              {customerPayments.map((payment, index) => (
+                <View key={index} style={[styles.tableRow, index % 2 === 1 ? styles.tableRowEven : {}]}>
+                  <Text style={[styles.tableCol, {width: '25%'}]}>
+                    {format(new Date(payment.date), 'dd/MM/yyyy')}
+                  </Text>
+                  <Text style={[styles.tableCol, {width: '50%'}]}>
+                    {payment.description || 'Payment received'}
+                  </Text>
+                  <Text style={[styles.tableCol, {width: '25%', textAlign: 'right', fontFamily: 'Roboto Mono'}]}>
+                    {formatCurrency(payment.amount)}
+                  </Text>
+                </View>
+              ))}
             </View>
           </View>
         )}
