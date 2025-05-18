@@ -126,20 +126,25 @@ export default function TransactionsPage() {
           console.log(`Transaction deleted from Firestore: ${transaction.id}`);
           
           // Update local state
-          setFirestoreTransactions(prev => prev.filter(t => t.id !== transaction.id));
+          setTransactions((prev: Transaction[]) => prev.filter((t: Transaction) => t.id !== transaction.id));
         } catch (firestoreError) {
           console.error("Error deleting transaction from Firestore:", firestoreError);
         }
         
         // Also delete via API for backward compatibility
-        await apiRequest('DELETE', `/api/transactions/${transaction.id}`, undefined);
+        try {
+          await apiRequest('DELETE', `/api/transactions/${transaction.id}`, undefined);
+        } catch (apiError) {
+          console.error("API error during transaction deletion:", apiError);
+          // Continue anyway since Firestore operation likely succeeded
+        }
         
         toast({
           title: "Transaction deleted",
           description: "The transaction has been successfully deleted",
         });
         
-        // Refresh API data
+        // Refresh data
         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
         
         // Also invalidate suppliers or customers cache based on entity type
@@ -148,6 +153,10 @@ export default function TransactionsPage() {
         } else if (transaction.entityType === 'customer') {
           queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
         }
+        
+        // Reload data from Firestore directly
+        const updatedTransactions = await TransactionService.getTransactions();
+        setTransactions(updatedTransactions as unknown as Transaction[]);
       } catch (error) {
         console.error("Error during transaction deletion:", error);
         toast({

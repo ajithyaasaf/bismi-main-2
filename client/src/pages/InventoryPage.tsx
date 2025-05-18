@@ -70,7 +70,12 @@ export default function InventoryPage() {
       }
       
       // Then delete via API for backward compatibility
-      await apiRequest('DELETE', `/api/inventory/${itemToDelete.id}`, undefined);
+      try {
+        await apiRequest('DELETE', `/api/inventory/${itemToDelete.id}`, undefined);
+      } catch (apiError) {
+        console.error("API error during inventory deletion:", apiError);
+        // Continue anyway since Firestore operation likely succeeded
+      }
       
       toast({
         title: "Item deleted",
@@ -78,7 +83,7 @@ export default function InventoryPage() {
       });
       
       // Refresh local state
-      setFirestoreInventory(prev => prev.filter(i => i.id !== itemToDelete.id));
+      setFirestoreInventory((prev: any) => prev.filter((i: any) => i.id !== itemToDelete.id));
       
       // Refresh inventory data via query cache
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
