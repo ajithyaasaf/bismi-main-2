@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { Customer, Inventory, OrderItem } from '@shared/schema';
+import { format, parseISO } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import { Separator } from "@/components/ui/separator";
 import * as OrderService from '@/lib/order-service';
@@ -25,6 +26,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [orderDate, setOrderDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [items, setItems] = useState<{
     id: string;
     type: string;
@@ -104,7 +106,8 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
     setCustomerId('');
     setCustomerName('');
     setCustomerPhone('');
-    setItems([{ id: '1', type: 'chicken', quantity: '', rate: '' }]);
+    setOrderDate(format(new Date(), 'yyyy-MM-dd'));
+    setItems([{ id: '1', type: 'chicken', quantity: '', rate: '', details: '' }]);
     setPaymentStatus('paid');
   };
   
@@ -226,11 +229,14 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       const total = calculateTotal();
       
       // Create order using Firestore service directly
-      console.log('Creating order in Firestore with date as JS Date object');
+      console.log('Creating order in Firestore with selected date');
+      // Parse the ISO date string to create a Date object
+      const orderDateObj = orderDate ? parseISO(orderDate) : new Date();
+      
       const newOrder = await OrderService.addOrder({
         customerId: orderCustomerId,
         items: validItems,
-        date: new Date(),
+        date: orderDateObj,
         total,
         status: paymentStatus,
         type: customerType

@@ -386,11 +386,14 @@ const InvoicePDF = ({
     } as OrderWithItems;
   });
   
-  // Calculate total pending amount
-  const totalPending = filteredOrders.reduce((sum, order) => {
-    if (order.status === 'paid') return sum;
-    return sum + (typeof order.total === 'number' ? order.total : 0);
-  }, 0);
+  // Use the customer's current pending amount instead of calculating from orders
+  // This ensures we respect any payments made that aren't tied to specific orders
+  const totalPending = typeof customer.pendingAmount === 'number' ? customer.pendingAmount : 
+    // Fall back to calculating from orders if customer.pendingAmount isn't available
+    filteredOrders.reduce((sum, order) => {
+      if (order.status === 'paid') return sum;
+      return sum + (typeof order.total === 'number' ? order.total : 0);
+    }, 0);
   
   // Calculate total paid amount
   const totalPaid = filteredOrders.reduce((sum, order) => {
@@ -398,8 +401,21 @@ const InvoicePDF = ({
     return sum + (typeof order.total === 'number' ? order.total : 0);
   }, 0);
   
-  // Calculate grand total
-  const grandTotal = totalPending + totalPaid;
+  // Calculate grand total of all orders (original billed amount)
+  const ordersGrandTotal = filteredOrders.reduce((sum, order) => {
+    return sum + (typeof order.total === 'number' ? order.total : 0);
+  }, 0);
+  
+  // Calculate amount that has been paid through separate payments
+  // This is the difference between the sum of all orders and the current pending amount
+  const paidThroughRecordedPayments = Math.max(0, ordersGrandTotal - totalPending - totalPaid);
+  
+  // Total pending is already set from customer.pendingAmount
+  // Total paid includes both paid orders and recorded separate payments
+  const adjustedTotalPaid = totalPaid + paidThroughRecordedPayments;
+  
+  // Grand total remains the same (sum of pending and all paid amounts)
+  const grandTotal = totalPending + adjustedTotalPaid;
   
   // Calculate tax amount (assuming 5% GST)
   const taxAmount = grandTotal * 0.05;
