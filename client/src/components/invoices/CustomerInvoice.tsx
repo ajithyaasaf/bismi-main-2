@@ -333,6 +333,7 @@ const InvoicePDF = ({
   dueDate,
   showPaid = false,
   overdueThresholdDays = 15,
+  payments = [],
   businessInfo = {
     name: "Bismi Broiler's",
     address: ["Near Busstand, Hayarnisha Hospital", "Mudukulathur"],
@@ -358,6 +359,7 @@ const InvoicePDF = ({
   dueDate: string;
   showPaid?: boolean;
   overdueThresholdDays?: number;
+  payments?: Transaction[];
   businessInfo?: {
     name: string;
     address: string[];
@@ -638,7 +640,7 @@ const InvoicePDF = ({
         </View>
         
         {/* Payment History Section */}
-        {customerPayments && customerPayments.length > 0 && (
+        {payments && payments.length > 0 && (
           <View style={{marginTop: 20, marginBottom: 15}}>
             <Text style={styles.sectionTitle}>Payment History</Text>
             <View style={styles.table}>
@@ -648,10 +650,10 @@ const InvoicePDF = ({
                 <Text style={[styles.tableCol, styles.tableColHeader, {width: '25%', textAlign: 'right'}]}>Amount</Text>
               </View>
               
-              {customerPayments.map((payment, index) => (
+              {payments.map((payment, index) => (
                 <View key={index} style={[styles.tableRow, index % 2 === 1 ? styles.tableRowEven : {}]}>
                   <Text style={[styles.tableCol, {width: '25%'}]}>
-                    {format(new Date(payment.date), 'dd/MM/yyyy')}
+                    {format(new Date(payment.date || new Date()), 'dd/MM/yyyy')}
                   </Text>
                   <Text style={[styles.tableCol, {width: '50%'}]}>
                     {payment.description || 'Payment received'}
@@ -737,6 +739,7 @@ export default function CustomerInvoice({
   const [includeAllOrders, setIncludeAllOrders] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [customerPayments, setCustomerPayments] = useState<Transaction[]>([]);
   
   // Generate invoice number on component mount
   useEffect(() => {
@@ -751,6 +754,30 @@ export default function CustomerInvoice({
       }
     };
   }, [customer.name]);
+  
+  // Fetch customer payment transactions
+  useEffect(() => {
+    const fetchCustomerPayments = async () => {
+      try {
+        if (customer?.id) {
+          // Fetch all transactions for this customer
+          const payments = await getTransactionsByEntity(customer.id, 'customer');
+          // Filter to only include receipt type transactions (payments received)
+          const filteredPayments = payments.filter(payment => payment.type === 'receipt');
+          setCustomerPayments(filteredPayments);
+        }
+      } catch (error) {
+        console.error("Error fetching customer payments:", error);
+        toast({
+          title: "Failed to load payment history",
+          description: "Could not retrieve this customer's payment history.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    fetchCustomerPayments();
+  }, [customer?.id, toast]);
   
   // Filter to get only this customer's orders
   const customerOrders = useMemo(() => {
@@ -905,6 +932,7 @@ export default function CustomerInvoice({
                         invoiceNumber={invoiceNumber}
                         dueDate={dueDate}
                         showPaid={includeAllOrders}
+                        payments={customerPayments}
                       />
                     </PDFViewer>
                   </div>
@@ -1156,6 +1184,7 @@ export default function CustomerInvoice({
                   invoiceNumber={invoiceNumber}
                   dueDate={dueDate}
                   showPaid={includeAllOrders}
+                  payments={customerPayments}
                 />
               }
               fileName={`invoice-${customer.name}-${invoiceNumber}.pdf`}
