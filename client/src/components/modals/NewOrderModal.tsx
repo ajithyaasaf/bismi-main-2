@@ -526,6 +526,20 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
               </div>
             </div>
             
+            {/* Order Date */}
+            <div className="mt-4">
+              <Label htmlFor="order-date" className="block text-sm font-medium mb-2">
+                Order Date
+              </Label>
+              <Input
+                id="order-date"
+                type="date"
+                value={orderDate}
+                onChange={(e) => setOrderDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            
             {/* Payment Status */}
             <div className="mt-4">
               <Label htmlFor="payment-status" className="block text-sm font-medium mb-2">

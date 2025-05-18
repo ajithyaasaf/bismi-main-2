@@ -621,20 +621,26 @@ const InvoicePDF = ({
           <View style={styles.totalRight}>
             <View style={styles.totalTable}>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Subtotal:</Text>
-                <Text style={styles.totalValue}>{formatCurrency(grandTotal)}</Text>
+                <Text style={styles.totalLabel}>Original Orders Total:</Text>
+                <Text style={styles.totalValue}>{formatCurrency(ordersGrandTotal)}</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>GST (5%):</Text>
                 <Text style={styles.totalValue}>{formatCurrency(taxAmount)}</Text>
               </View>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Paid Amount:</Text>
+                <Text style={styles.totalLabel}>Paid Through Orders:</Text>
                 <Text style={styles.totalValue}>{formatCurrency(totalPaid)}</Text>
               </View>
+              {paidThroughRecordedPayments > 0 && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Additional Payment(s):</Text>
+                  <Text style={styles.totalValue}>{formatCurrency(paidThroughRecordedPayments)}</Text>
+                </View>
+              )}
               <View style={[styles.totalRow, styles.totalRowFinal]}>
-                <Text style={[styles.totalLabel, styles.totalLabelFinal]}>Balance Due:</Text>
-                <Text style={[styles.totalValue, styles.totalValueFinal]}>{formatCurrency(totalPending)}</Text>
+                <Text style={[styles.totalLabel, styles.totalLabelFinal]}>Current Balance Due:</Text>
+                <Text style={[styles.totalValue, styles.totalValueFinal, styles.monoFont]}>{formatCurrency(totalPending)}</Text>
               </View>
             </View>
           </View>
