@@ -2,8 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "build-for-vercel.js",
-      "use": "@vercel/node",
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
       "config": {
         "distDir": "dist/public"
       }
@@ -12,15 +16,19 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1.js"
+      "dest": "/api/$1"
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/public/$1"
+      "dest": "/index.html"
     }
   ],
   "env": {
     "USE_FIRESTORE": "true",
-    "FIREBASE_PROJECT_ID": "bismi-broilers-3ca96"
+    "FIREBASE_PROJECT_ID": "bismi-broilers-3ca96",
+    "NODE_ENV": "production"
   }
 }
