@@ -57,17 +57,35 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
         debt: debtValue,
       };
       
+      // Check for Vercel deployment
+      const isVercelDeployment = window.location.hostname.includes('.vercel.app') || 
+                                window.location.hostname.includes('.replit.app');
+      
+      let firestoreSuccess = false;
+      
       if (isEditing && supplier) {
         // First update directly in Firestore
         try {
           await SupplierService.updateSupplier(supplier.id, supplierData);
           console.log("Supplier updated in Firestore successfully");
+          firestoreSuccess = true;
         } catch (firestoreError) {
           console.error("Error updating supplier in Firestore:", firestoreError);
         }
         
         // Then update via API for backward compatibility
-        await apiRequest('PUT', `/api/suppliers/${supplier.id}`, supplierData);
+        try {
+          await apiRequest('PUT', `/api/suppliers/${supplier.id}`, supplierData);
+          console.log("Supplier updated via API successfully");
+        } catch (apiError) {
+          // If we're in Vercel and the error is 405, treat as success if Firestore worked
+          if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
+            console.log("API returned 405 in Vercel but Firestore update succeeded");
+          } else if (!firestoreSuccess) {
+            // Only throw if neither operation succeeded
+            throw apiError;
+          }
+        }
         
         toast({
           title: "Supplier updated",
@@ -78,12 +96,24 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
         try {
           const newSupplier = await SupplierService.addSupplier(supplierData);
           console.log("Supplier added to Firestore successfully:", newSupplier);
+          firestoreSuccess = true;
         } catch (firestoreError) {
           console.error("Error adding supplier to Firestore:", firestoreError);
         }
         
         // Then create via API for backward compatibility
-        await apiRequest('POST', '/api/suppliers', supplierData);
+        try {
+          await apiRequest('POST', '/api/suppliers', supplierData);
+          console.log("Supplier added via API successfully");
+        } catch (apiError) {
+          // If we're in Vercel and the error is 405, treat as success if Firestore worked
+          if (isVercelDeployment && apiError.message?.includes('405') && firestoreSuccess) {
+            console.log("API returned 405 in Vercel but Firestore creation succeeded");
+          } else if (!firestoreSuccess) {
+            // Only throw if neither operation succeeded
+            throw apiError;
+          }
+        }
         
         toast({
           title: "Supplier added",
