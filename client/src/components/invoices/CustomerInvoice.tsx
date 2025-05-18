@@ -378,6 +378,12 @@ const InvoicePDF = ({
     
     // Include all orders or only unpaid based on showPaid flag
     return showPaid ? true : order.status !== 'paid';
+  }).map(order => {
+    // Ensure all orders have an items array
+    return {
+      ...order,
+      items: Array.isArray(order.items) ? order.items : []
+    } as OrderWithItems;
   });
   
   // Calculate total pending amount
@@ -421,12 +427,28 @@ const InvoicePDF = ({
   const formatOrderItems = (items: any[]) => {
     if (!items || !Array.isArray(items) || items.length === 0) return "No items";
     
-    return items.map(item => {
-      const quantity = typeof item.quantity === 'number' ? item.quantity.toFixed(2) : item.quantity;
-      const rate = typeof item.rate === 'number' ? item.rate.toFixed(2) : item.rate;
-      const details = item.details ? ` (${item.details})` : '';
-      return `${quantity} kg ${item.type}${details} - ₹${rate}/kg`;
-    }).join(', ');
+    try {
+      return items.map(item => {
+        // Handle different item structures from various sources
+        const quantity = typeof item.quantity === 'number' ? 
+          item.quantity.toFixed(2) : 
+          (item.quantity || '0');
+          
+        const itemType = item.type || (typeof item.itemId === 'string' && item.itemId.length > 0 ? 'item' : 'product');
+        
+        const rate = typeof item.rate === 'number' ? 
+          item.rate.toFixed(2) : 
+          (item.rate || '0');
+          
+        const details = item.details ? ` (${item.details})` : '';
+        
+        return `${quantity} kg ${itemType}${details} - ₹${rate}/kg`;
+      }).join(', ');
+    } catch (error) {
+      // Fallback for any parsing errors
+      console.error("Error formatting order items:", error);
+      return "Items information unavailable";
+    }
   };
   
   // Generate a unique order identifier
@@ -530,7 +552,7 @@ const InvoicePDF = ({
                       {format(orderDate, 'dd/MM/yyyy')}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColItems]}>
-                      {formatOrderItems(order.items)}
+                      {formatOrderItems(Array.isArray(order.items) ? order.items : [])}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColAmount, styles.monoFont]}>
                       {formatCurrency(typeof order.total === 'number' ? order.total : 0)}
@@ -646,6 +668,17 @@ interface CustomerInvoiceProps {
   onClose: () => void;
   customer: Customer;
   orders: Order[];
+}
+
+// More specific type for order with items
+interface OrderWithItems extends Order {
+  items: Array<{
+    quantity: number;
+    type: string;
+    rate: number;
+    details?: string;
+    itemId?: string;
+  }>;
 }
 
 export default function CustomerInvoice({ 
