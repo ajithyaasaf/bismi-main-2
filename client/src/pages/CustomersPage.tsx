@@ -10,7 +10,7 @@ import * as CustomerService from "@/lib/customer-service";
 import * as OrderService from "@/lib/order-service";
 import PaymentModal from "@/components/modals/PaymentModal";
 import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
-import CustomerInvoice from "@/components/invoices/CustomerInvoice";
+import { CustomerInvoice } from "@/components/invoices/CustomerInvoice";
 
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);

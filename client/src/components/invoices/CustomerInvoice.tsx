@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getTransactionsByEntity } from '@/lib/transaction-service';
 import qrCodeImage from "../../assets/qr-code.jpg";
 
-// Register custom fonts
+// Register custom fonts for PDF
 Font.register({
   family: 'Open Sans',
   fonts: [
@@ -324,6 +324,10 @@ const styles = StyleSheet.create({
   },
 });
 
+interface OrderWithItems extends Order {
+  items: any[];
+}
+
 // Invoice PDF Component
 const InvoicePDF = ({ 
   customer,
@@ -376,65 +380,44 @@ const InvoicePDF = ({
 }) => {
   // Filter orders based on customer and payment status
   const filteredOrders = orders.filter(order => {
-    // Check if the order belongs to this customer
     if (order.customerId !== customer.id) return false;
-    
-    // Include all orders or only unpaid based on showPaid flag
     return showPaid ? true : order.status !== 'paid';
-  }).map(order => {
-    // Ensure all orders have an items array
-    return {
-      ...order,
-      items: Array.isArray(order.items) ? order.items : []
-    } as OrderWithItems;
-  });
+  }).map(order => ({
+    ...order,
+    items: Array.isArray(order.items) ? order.items : []
+  } as OrderWithItems));
   
-  // Use the customer's current pending amount instead of calculating from orders
-  // This ensures we respect any payments made that aren't tied to specific orders
+  // Calculate totals
   const totalPending = typeof customer.pendingAmount === 'number' ? customer.pendingAmount : 
-    // Fall back to calculating from orders if customer.pendingAmount isn't available
     filteredOrders.reduce((sum, order) => {
       if (order.status === 'paid') return sum;
       return sum + (typeof order.total === 'number' ? order.total : 0);
     }, 0);
   
-  // Calculate total paid amount
   const totalPaid = filteredOrders.reduce((sum, order) => {
     if (order.status !== 'paid') return sum;
     return sum + (typeof order.total === 'number' ? order.total : 0);
   }, 0);
   
-  // Calculate grand total of all orders (original billed amount)
   const ordersGrandTotal = filteredOrders.reduce((sum, order) => {
     return sum + (typeof order.total === 'number' ? order.total : 0);
   }, 0);
   
-  // Calculate amount that has been paid through separate payments
-  // This is the difference between the sum of all orders and the current pending amount
   const paidThroughRecordedPayments = Math.max(0, ordersGrandTotal - totalPending - totalPaid);
-  
-  // Total pending is already set from customer.pendingAmount
-  // Total paid includes both paid orders and recorded separate payments
   const adjustedTotalPaid = totalPaid + paidThroughRecordedPayments;
-  
-  // Grand total remains the same (sum of pending and all paid amounts)
   const grandTotal = totalPending + adjustedTotalPaid;
-  
-  // Calculate tax amount (assuming 5% GST)
   const taxAmount = grandTotal * 0.05;
   
   // Check for overdue orders
   const overdueOrders = filteredOrders.filter(order => {
     if (order.status === 'paid') return false;
     
-    // Handle different date formats from API or Firestore
     let orderDate: Date;
     if (typeof order.date === 'string') {
       orderDate = parseISO(order.date);
     } else if (order.date instanceof Date) {
       orderDate = order.date;
     } else {
-      // Fallback to current date if date is null or invalid
       orderDate = new Date();
     }
     
@@ -442,13 +425,12 @@ const InvoicePDF = ({
     return differenceInDays(currentDateObj, orderDate) >= overdueThresholdDays;
   });
   
-  // Format order items for display with proper currency formatting
+  // Format order items for display
   const formatOrderItems = (items: any[]) => {
     if (!items || !Array.isArray(items) || items.length === 0) return "No items";
     
     try {
       return items.map(item => {
-        // Handle different item structures from various sources
         const quantity = typeof item.quantity === 'number' ? 
           item.quantity.toFixed(2) : 
           (item.quantity || '0');
@@ -464,19 +446,16 @@ const InvoicePDF = ({
         return `${quantity} kg ${itemType}${details} - ₹${rate}/kg`;
       }).join(', ');
     } catch (error) {
-      // Fallback for any parsing errors
       console.error("Error formatting order items:", error);
       return "Items information unavailable";
     }
   };
   
-  // Generate a unique order identifier
   const getOrderIdentifier = (order: Order, index: number) => {
     const id = typeof order.id === 'string' ? order.id.substring(0, 8) : `ORDER-${index + 1}`;
     return id.toUpperCase();
   };
   
-  // Format currency
   const formatCurrency = (amount: number) => {
     return `₹${amount.toFixed(2)}`;
   };
@@ -542,677 +521,644 @@ const InvoicePDF = ({
               <Text style={[styles.tableCol, styles.tableColHeader, styles.tableColStatus]}>Status</Text>
             </View>
             
-            {filteredOrders.length > 0 ? (
+            {filteredOrders.length === 0 ? (
+              <View style={styles.tableRow}>
+                <Text style={[styles.tableCol, { width: '100%', textAlign: 'center' }]}>
+                  No orders found for this customer
+                </Text>
+              </View>
+            ) : (
               filteredOrders.map((order, index) => {
-                // Handle different date formats
-                let orderDate: Date;
-                if (typeof order.date === 'string') {
-                  orderDate = parseISO(order.date);
-                } else if (order.date instanceof Date) {
-                  orderDate = order.date;
-                } else {
-                  orderDate = new Date();
-                }
-                
-                const daysSincePurchase = differenceInDays(parseISO(currentDate), orderDate);
-                const isOverdue = daysSincePurchase >= overdueThresholdDays && order.status !== 'paid';
-                const isPaid = order.status === 'paid';
+                const isOverdue = overdueOrders.some(o => o.id === order.id);
+                const orderDate = typeof order.date === 'string' ? parseISO(order.date) : 
+                                 order.date instanceof Date ? order.date : new Date();
                 
                 return (
-                  <View key={index} style={[
-                    styles.tableRow, 
-                    index % 2 === 1 ? styles.tableRowEven : {}
-                  ]}>
+                  <View key={order.id} style={[styles.tableRow, index % 2 === 0 ? {} : styles.tableRowEven]}>
                     <View style={[styles.tableCol, styles.tableColId]}>
-                      <Text>{getOrderIdentifier(order, index)}</Text>
-                      <Text style={styles.orderNumber}>{format(orderDate, 'dd/MM/yy')}</Text>
+                      <Text style={styles.orderNumber}>
+                        {getOrderIdentifier(order, index)}
+                      </Text>
                     </View>
                     <Text style={[styles.tableCol, styles.tableColDate]}>
                       {format(orderDate, 'dd/MM/yyyy')}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColItems]}>
-                      {formatOrderItems(Array.isArray(order.items) ? order.items : [])}
+                      {formatOrderItems(order.items)}
                     </Text>
                     <Text style={[styles.tableCol, styles.tableColAmount, styles.monoFont]}>
-                      {formatCurrency(typeof order.total === 'number' ? order.total : 0)}
+                      {formatCurrency(order.total)}
                     </Text>
                     <View style={[styles.tableCol, styles.tableColStatus]}>
                       <Text style={[
-                        styles.statusBadge,
-                        isPaid ? { backgroundColor: '#dcfce7', color: '#166534' } :
-                        isOverdue ? styles.statusOverdue : styles.statusPending
+                        styles.statusBadge, 
+                        order.status === 'paid' 
+                          ? { color: '#065f46', backgroundColor: '#d1fae5' }
+                          : isOverdue 
+                            ? styles.statusOverdue 
+                            : styles.statusPending
                       ]}>
-                        {isPaid ? 'PAID' : isOverdue ? 'OVERDUE' : 'PENDING'}
+                        {order.status === 'paid' ? 'PAID' : isOverdue ? 'OVERDUE' : 'PENDING'}
                       </Text>
                     </View>
                   </View>
                 );
               })
-            ) : (
-              <View style={styles.tableRow}>
-                <Text style={[styles.tableCol, { width: '100%', textAlign: 'center' }]}>No orders found</Text>
-              </View>
             )}
           </View>
-        </View>
-        
-        {/* Notice Box */}
-        {overdueOrders.length > 0 && (
-          <View style={[styles.noticeBox, styles.noticeBoxWarning]}>
-            <Text style={[styles.noticeText, { color: '#9a3412', fontWeight: 'bold' }]}>
-              ⚠️ Payment Notice: {overdueOrders.length} order(s) are overdue by {overdueThresholdDays}+ days.
-            </Text>
-            <Text style={[styles.noticeText, { color: '#9a3412' }]}>
-              Please settle your outstanding balance immediately to avoid service interruptions.
-            </Text>
-          </View>
-        )}
-        
-        {/* Totals Section */}
-        <View style={styles.totalSection}>
-          <View style={styles.totalLeft}>
-            {/* Payment Instructions */}
-            <View style={styles.noticeBox}>
-              <Text style={[styles.noticeText, { fontWeight: 'bold' }]}>
-                Payment Due: {format(parseISO(dueDate), 'dd/MM/yyyy')}
-              </Text>
-              <Text style={styles.noticeText}>
-                Please include the invoice number ({invoiceNumber}) when making payment.
-              </Text>
-            </View>
-          </View>
-          <View style={styles.totalRight}>
-            <View style={styles.totalTable}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Original Orders Total:</Text>
-                <Text style={styles.totalValue}>{formatCurrency(ordersGrandTotal)}</Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Already Paid:</Text>
-                <Text style={styles.totalValue}>{formatCurrency(adjustedTotalPaid)}</Text>
-              </View>
-              <View style={[styles.totalRow, styles.totalRowFinal]}>
-                <Text style={[styles.totalLabel, styles.totalLabelFinal]}>Current Balance Due:</Text>
-                <Text style={[styles.totalValue, styles.totalValueFinal, styles.monoFont]}>{formatCurrency(totalPending)}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-        
-        {/* Payment History Section */}
-        {payments && payments.length > 0 && (
-          <View style={{marginTop: 20, marginBottom: 15}}>
-            <Text style={styles.sectionTitle}>Payment History</Text>
-            <View style={styles.table}>
-              <View style={[styles.tableRow, styles.tableRowHeader]}>
-                <Text style={[styles.tableCol, styles.tableColHeader, {width: '25%'}]}>Date</Text>
-                <Text style={[styles.tableCol, styles.tableColHeader, {width: '50%'}]}>Description</Text>
-                <Text style={[styles.tableCol, styles.tableColHeader, {width: '25%', textAlign: 'right'}]}>Amount</Text>
-              </View>
-              
-              {payments.map((payment, index) => (
-                <View key={index} style={[styles.tableRow, index % 2 === 1 ? styles.tableRowEven : {}]}>
-                  <Text style={[styles.tableCol, {width: '25%'}]}>
-                    {format(new Date(payment.date || new Date()), 'dd/MM/yyyy')}
-                  </Text>
-                  <Text style={[styles.tableCol, {width: '50%'}]}>
-                    {payment.description || 'Payment received'}
-                  </Text>
-                  <Text style={[styles.tableCol, {width: '25%', textAlign: 'right', fontFamily: 'Roboto Mono'}]}>
-                    {formatCurrency(payment.amount)}
+
+          {/* Totals Section */}
+          <View style={styles.totalSection}>
+            <View style={styles.totalLeft}>
+              {overdueOrders.length > 0 && (
+                <View style={[styles.noticeBox, styles.noticeBoxWarning]}>
+                  <Text style={styles.noticeText}>
+                    ⚠ {overdueOrders.length} order(s) are overdue by more than {overdueThresholdDays} days
                   </Text>
                 </View>
-              ))}
+              )}
+            </View>
+            <View style={styles.totalRight}>
+              <View style={styles.totalTable}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Subtotal:</Text>
+                  <Text style={[styles.totalValue, styles.monoFont]}>{formatCurrency(ordersGrandTotal)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Tax (5% GST):</Text>
+                  <Text style={[styles.totalValue, styles.monoFont]}>{formatCurrency(taxAmount)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total Paid:</Text>
+                  <Text style={[styles.totalValue, styles.monoFont, { color: '#065f46' }]}>
+                    -{formatCurrency(adjustedTotalPaid)}
+                  </Text>
+                </View>
+                <View style={[styles.totalRow, styles.totalRowFinal]}>
+                  <Text style={[styles.totalLabel, styles.totalLabelFinal]}>Amount Due:</Text>
+                  <Text style={[styles.totalValue, styles.totalValueFinal, styles.monoFont]}>
+                    {formatCurrency(totalPending)}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
-        )}
-        
-        {/* Payment Section */}
+        </View>
+
+        {/* Payment Information Section */}
         <View style={styles.paymentSection}>
           <Text style={styles.paymentSectionTitle}>Payment Information</Text>
           <View style={styles.paymentDetailsContainer}>
             <View style={styles.paymentDetails}>
-              <Text style={[styles.paymentMethod, { fontWeight: 'bold' }]}>UPI Payment:</Text>
+              <Text style={[styles.paymentMethod, { fontWeight: 'bold' }]}>Payment Methods:</Text>
               <Text style={styles.paymentMethod}>UPI ID: {paymentInfo.upiId}</Text>
-              <Text style={styles.paymentMethod}>Google Pay: {paymentInfo.phone}</Text>
+              <Text style={styles.paymentMethod}>Phone: {paymentInfo.phone}</Text>
               <Text style={styles.paymentMethod}>Account Name: {paymentInfo.accountName}</Text>
               
-              <Text style={[styles.paymentMethod, { fontWeight: 'bold', marginTop: 10 }]}>Terms & Conditions:</Text>
+              <Text style={[styles.paymentMethod, { fontWeight: 'bold', marginTop: 10 }]}>Payment Terms:</Text>
               {paymentInfo.terms.map((term, index) => (
                 <Text key={index} style={styles.paymentInstruction}>• {term}</Text>
               ))}
             </View>
             <View style={styles.paymentQR}>
-              <Image src={qrCodeImage} style={{ width: 80, height: 80 }} />
-              <Text style={{ fontSize: 8, marginTop: 5, textAlign: 'center' }}>Scan to Pay</Text>
+              <Text style={[styles.paymentInstruction, { marginBottom: 5 }]}>Scan QR Code for Payment</Text>
+              <Image 
+                src={qrCodeImage} 
+                style={{ width: 80, height: 80, border: '1px solid #e5e7eb' }}
+              />
             </View>
           </View>
         </View>
-        
-        {/* Conditional Watermark */}
-        {totalPending === 0 && (
-          <Text style={styles.watermark}>PAID</Text>
-        )}
-        
+
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Thank you for your business!</Text>
-          <Text style={styles.footerText}>Invoice generated on {format(parseISO(currentDate), 'dd/MM/yyyy')} at {format(new Date(), 'HH:mm')}</Text>
-          <Text style={styles.footerText}>{businessInfo.name} - {businessInfo.phone} - {businessInfo.email}</Text>
+          <Text style={styles.footerText}>
+            Generated on {format(parseISO(currentDate), 'dd/MM/yyyy HH:mm')} | Invoice #{invoiceNumber}
+          </Text>
+          <Text style={styles.footerText}>
+            This is a computer-generated invoice and does not require a signature.
+          </Text>
         </View>
+
+        {/* Watermark for unpaid invoices */}
+        {totalPending > 0 && (
+          <Text style={styles.watermark}>PENDING</Text>
+        )}
       </Page>
     </Document>
   );
 };
 
-// Main component interfaces
 interface CustomerInvoiceProps {
-  isOpen: boolean;
-  onClose: () => void;
   customer: Customer;
   orders: Order[];
+  isOpen: boolean;
+  onClose: () => void;
+  onPaymentMade?: (amount: number) => void;
 }
 
-// More specific type for order with items
-interface OrderWithItems extends Order {
-  items: Array<{
-    quantity: number;
-    type: string;
-    rate: number;
-    details?: string;
-    itemId?: string;
-  }>;
-}
-
-export default function CustomerInvoice({ 
+export function CustomerInvoice({ 
+  customer, 
+  orders, 
   isOpen, 
   onClose, 
-  customer,
-  orders 
+  onPaymentMade 
 }: CustomerInvoiceProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('preview');
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [includeHistory, setIncludeHistory] = useState(false);
+  const [overdueThresholdDays, setOverdueThresholdDays] = useState(15);
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [dueDate, setDueDate] = useState(format(addDays(new Date(), 15), 'yyyy-MM-dd'));
-  const [includeAllOrders, setIncludeAllOrders] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
-  const [customerPayments, setCustomerPayments] = useState<Transaction[]>([]);
-  
-  // Generate invoice number on component mount
+  const [dueDate, setDueDate] = useState('');
+  const [currentDate, setCurrentDate] = useState('');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showPaid, setShowPaid] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+
+  // Initialize dates and invoice number
   useEffect(() => {
-    const timestamp = new Date().getTime().toString().slice(-6);
-    const customerPrefix = customer.name.substring(0, 2).toUpperCase();
-    setInvoiceNumber(`INV-${customerPrefix}${timestamp}`);
-    
-    // Cleanup function to revoke blob URL when component unmounts
-    return () => {
-      if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl);
-      }
-    };
-  }, [customer.name]);
-  
-  // Fetch customer payment transactions - specifically payments received (receipts)
-  useEffect(() => {
-    const fetchCustomerPayments = async () => {
-      try {
-        if (customer?.id) {
-          // Fetch all transactions for this customer from Firestore
-          const payments = await getTransactionsByEntity(customer.id, 'customer');
-          
-          // Filter to only include receipt type transactions (payments received)
-          const filteredPayments = payments
-            .filter((payment: any) => payment && payment.type === 'receipt')
-            .map((payment: any) => ({
-              id: payment.id || payment.firebaseId || `payment-${Math.random().toString(36).substring(2, 9)}`,
-              date: payment.date || new Date(),
-              amount: typeof payment.amount === 'number' ? payment.amount : 0,
-              description: payment.description || 'Payment received',
-              type: 'receipt',
-              entityId: customer.id,
-              entityType: 'customer'
-            }))
-            // Sort by date (newest first)
-            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          console.log('Customer payment history:', filteredPayments);
-          setCustomerPayments(filteredPayments);
-        }
-      } catch (error) {
-        console.error("Error fetching customer payments:", error);
-        toast({
-          title: "Failed to load payment history",
-          description: "Could not retrieve payment records. Some details may be incomplete.",
-          variant: "destructive"
-        });
-      }
-    };
-    
-    fetchCustomerPayments();
-  }, [customer?.id, toast]);
-  
-  // Filter to get only this customer's orders
-  const customerOrders = useMemo(() => {
-    return orders.filter(order => order.customerId === customer.id);
-  }, [orders, customer.id]);
-  
-  // Get summary statistics
-  const totalOrders = customerOrders.length;
-  const pendingOrders = customerOrders.filter(order => order.status !== 'paid').length;
-  const pendingAmount = customerOrders.reduce((sum, order) => {
-    if (order.status === 'paid') return sum;
-    return sum + (typeof order.total === 'number' ? order.total : 0);
-  }, 0);
-  
-  // Check for overdue orders (older than 15 days)
-  const overdueOrders = customerOrders.filter(order => {
-    if (order.status === 'paid') return false;
-    
-    let orderDate: Date;
-    if (typeof order.date === 'string') {
-      orderDate = parseISO(order.date);
-    } else if (order.date instanceof Date) {
-      orderDate = order.date;
-    } else {
-      orderDate = new Date();
+    if (isOpen) {
+      const today = new Date();
+      const due = addDays(today, 15);
+      setCurrentDate(today.toISOString().split('T')[0]);
+      setDueDate(due.toISOString().split('T')[0]);
+      setInvoiceNumber(`INV-${format(today, 'yyyyMMdd')}-${customer.id.substring(0, 4).toUpperCase()}`);
+      
+      // Load transactions for this customer
+      loadTransactions();
     }
+  }, [isOpen, customer.id]);
+
+  const loadTransactions = async () => {
+    try {
+      const customerTransactions = await getTransactionsByEntity(customer.id);
+      // Transform the Firestore data to match the Transaction type
+      const transformedTransactions = customerTransactions.map((tx: any) => ({
+        id: tx.id || tx.firebaseId,
+        type: tx.type || 'payment',
+        entityId: tx.entityId || customer.id,
+        entityType: tx.entityType || 'customer',
+        amount: tx.amount || 0,
+        description: tx.description || null,
+        date: tx.date || tx.createdAt || new Date()
+      }));
+      setTransactions(transformedTransactions);
+    } catch (error) {
+      console.error('Failed to load transactions:', error);
+      setTransactions([]);
+    }
+  };
+
+  // Filter orders based on customer and settings
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (order.customerId !== customer.id) return false;
+      return showPaid ? true : order.status !== 'paid';
+    }).map(order => ({
+      ...order,
+      items: Array.isArray(order.items) ? order.items : []
+    } as OrderWithItems));
+  }, [orders, customer.id, showPaid]);
+
+  // Calculate totals
+  const calculations = useMemo(() => {
+    const totalPending = typeof customer.pendingAmount === 'number' ? customer.pendingAmount : 
+      filteredOrders.reduce((sum, order) => {
+        if (order.status === 'paid') return sum;
+        return sum + (typeof order.total === 'number' ? order.total : 0);
+      }, 0);
     
-    return differenceInDays(new Date(), orderDate) >= 15;
-  });
-  
-  // Copy invoice number to clipboard
-  const copyInvoiceNumber = () => {
-    navigator.clipboard.writeText(invoiceNumber).then(() => {
-      toast({
-        title: "Copied to clipboard!",
-        description: `Invoice number ${invoiceNumber} has been copied.`
-      });
+    const totalPaid = filteredOrders.reduce((sum, order) => {
+      if (order.status !== 'paid') return sum;
+      return sum + (typeof order.total === 'number' ? order.total : 0);
+    }, 0);
+    
+    const ordersGrandTotal = filteredOrders.reduce((sum, order) => {
+      return sum + (typeof order.total === 'number' ? order.total : 0);
+    }, 0);
+    
+    const paidThroughRecordedPayments = Math.max(0, ordersGrandTotal - totalPending - totalPaid);
+    const adjustedTotalPaid = totalPaid + paidThroughRecordedPayments;
+    const grandTotal = totalPending + adjustedTotalPaid;
+    const taxAmount = grandTotal * 0.05;
+
+    return {
+      totalPending,
+      totalPaid,
+      adjustedTotalPaid,
+      grandTotal,
+      taxAmount,
+      ordersGrandTotal
+    };
+  }, [filteredOrders, customer.pendingAmount]);
+
+  // Check for overdue orders
+  const overdueOrders = useMemo(() => {
+    return filteredOrders.filter(order => {
+      if (order.status === 'paid') return false;
+      
+      let orderDate: Date;
+      if (typeof order.date === 'string') {
+        orderDate = parseISO(order.date);
+      } else if (order.date instanceof Date) {
+        orderDate = order.date;
+      } else {
+        orderDate = new Date();
+      }
+      
+      const currentDateObj = parseISO(currentDate);
+      return differenceInDays(currentDateObj, orderDate) >= overdueThresholdDays;
+    });
+  }, [filteredOrders, currentDate, overdueThresholdDays]);
+
+  const formatOrderItems = (items: any[]) => {
+    if (!items || !Array.isArray(items) || items.length === 0) return "No items";
+    
+    try {
+      return items.map(item => {
+        const quantity = typeof item.quantity === 'number' ? 
+          item.quantity.toFixed(2) : 
+          (item.quantity || '0');
+          
+        const itemType = item.type || (typeof item.itemId === 'string' && item.itemId.length > 0 ? 'item' : 'product');
+        
+        const rate = typeof item.rate === 'number' ? 
+          item.rate.toFixed(2) : 
+          (item.rate || '0');
+          
+        const details = item.details ? ` (${item.details})` : '';
+        
+        return `${quantity} kg ${itemType}${details} - ₹${rate}/kg`;
+      }).join(', ');
+    } catch (error) {
+      console.error("Error formatting order items:", error);
+      return "Items information unavailable";
+    }
+  };
+
+  const getOrderIdentifier = (order: Order, index: number) => {
+    const id = typeof order.id === 'string' ? order.id.substring(0, 8) : `ORDER-${index + 1}`;
+    return id.toUpperCase();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `₹${amount.toFixed(2)}`;
+  };
+
+  const handleClose = () => {
+    setSelectedOrders([]);
+    setIncludeHistory(false);
+    setShowPDFPreview(false);
+    onClose();
+  };
+
+  const handlePrintInvoice = () => {
+    window.print();
+  };
+
+  const handleEmailInvoice = () => {
+    toast({
+      title: "Email Invoice",
+      description: "Email functionality will be implemented with backend integration.",
     });
   };
-  
-  // Reset PDF preview when tabs change
-  useEffect(() => {
-    if (activeTab !== 'preview') {
-      setShowPdfPreview(false);
-    }
-  }, [activeTab]);
-  
+
+  const pdfFileName = `Invoice_${invoiceNumber}_${customer.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden w-[95vw] sm:w-auto">
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
-          <DialogTitle className="text-xl sm:text-2xl">Customer Invoice</DialogTitle>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileTextIcon className="h-5 w-5" />
+            Invoice for {customer.name}
+          </DialogTitle>
         </DialogHeader>
-        
-        <Tabs defaultValue="preview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-          <div className="px-4 sm:px-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="preview" className="text-xs sm:text-sm px-1 sm:px-3 py-1 h-auto sm:h-10">
-                <EyeIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">Preview</span> Invoice
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="text-xs sm:text-sm px-1 sm:px-3 py-1 h-auto sm:h-10">
-                <FileTextIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">Invoice</span> Settings
-              </TabsTrigger>
-              <TabsTrigger value="export" className="text-xs sm:text-sm px-1 sm:px-3 py-1 h-auto sm:h-10">
-                <DownloadIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                Export <span className="hidden xs:inline">Options</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value="preview" className="p-4 sm:p-6 pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+
+        <Tabs defaultValue="preview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="preview">Invoice Preview</TabsTrigger>
+            <TabsTrigger value="pdf">PDF View</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="preview" className="space-y-6">
+            {/* Invoice Configuration */}
             <Card>
-              <CardHeader className="pb-2">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+              <CardHeader>
+                <CardTitle className="text-sm">Invoice Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <CardTitle className="text-base sm:text-lg">Invoice Preview</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Review the invoice before generating
+                    <Label htmlFor="invoiceNumber">Invoice Number</Label>
+                    <Input
+                      id="invoiceNumber"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="currentDate">Invoice Date</Label>
+                    <Input
+                      id="currentDate"
+                      type="date"
+                      value={currentDate}
+                      onChange={(e) => setCurrentDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dueDate">Due Date</Label>
+                    <Input
+                      id="dueDate"
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="showPaid"
+                      checked={showPaid}
+                      onCheckedChange={(checked) => setShowPaid(checked as boolean)}
+                    />
+                    <Label htmlFor="showPaid">Include paid orders</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoice Header */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-2xl text-blue-600">Bismi Broiler's</CardTitle>
+                    <CardDescription className="mt-2">
+                      Near Busstand, Hayarnisha Hospital<br />
+                      Mudukulathur<br />
+                      Phone: +91 8681087082<br />
+                      GSTIN: 33AADCB1234F1Z5<br />
+                      Email: bismi.broilers@gmail.com
                     </CardDescription>
                   </div>
-                  <div className="flex items-center">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs h-8 sm:h-9 w-full sm:w-auto"
-                      onClick={() => setShowPdfPreview(!showPdfPreview)}
-                    >
-                      {showPdfPreview ? 'Hide PDF Preview' : 'Show PDF Preview'}
-                    </Button>
+                  <div className="text-right">
+                    <h2 className="text-2xl font-bold text-blue-600">INVOICE</h2>
+                    <p className="text-sm text-gray-600">#{invoiceNumber}</p>
                   </div>
                 </div>
               </CardHeader>
-              
-              <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-5">
-                <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
-                  {/* Customer Information */}
-                  <div className="w-full md:w-1/2 space-y-2 sm:space-y-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs sm:text-sm text-muted-foreground">Customer</Label>
-                      <div className="font-medium text-base sm:text-lg">{customer.name}</div>
+            </Card>
+
+            {/* Invoice Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Bill To:</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="font-medium">{customer.name}</p>
+                    <p>Type: {customer.type === 'hotel' ? 'Hotel/Restaurant' : 'Retail Customer'}</p>
+                    {customer.contact && <p>Contact: {customer.contact}</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Invoice Details:</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Invoice Date:</span>
+                      <span>{format(parseISO(currentDate), 'dd/MM/yyyy')}</span>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-2">
-                      <div>
-                        <Label className="text-xs sm:text-sm text-muted-foreground">Type</Label>
-                        <div className="text-sm sm:text-base">{customer.type === 'hotel' ? 'Hotel/Restaurant' : 'Retail'}</div>
-                      </div>
-                      
-                      {customer.contact && (
-                        <div>
-                          <Label className="text-xs sm:text-sm text-muted-foreground">Contact</Label>
-                          <div className="text-sm sm:text-base">{customer.contact}</div>
-                        </div>
-                      )}
+                    <div className="flex justify-between">
+                      <span>Due Date:</span>
+                      <span>{format(parseISO(dueDate), 'dd/MM/yyyy')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Customer ID:</span>
+                      <span>{customer.id.substring(0, 8).toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Payment Status:</span>
+                      <span className={calculations.totalPending > 0 ? 'text-orange-600' : 'text-green-600'}>
+                        {calculations.totalPending > 0 ? 'PENDING' : 'PAID'}
+                      </span>
                     </div>
                   </div>
-                  
-                  {/* Invoice Summary */}
-                  <div className="w-full md:w-1/2 flex flex-col gap-3 sm:gap-4 bg-muted/50 p-3 sm:p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-semibold text-sm sm:text-base">Invoice Summary</h3>
-                      <div className="text-xs sm:text-sm font-medium px-2 py-1 bg-primary/10 text-primary rounded-md">
-                        #{invoiceNumber}
-                      </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Orders Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+                {overdueOrders.length > 0 && (
+                  <div className="bg-orange-50 border border-orange-200 rounded p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangleIcon className="h-4 w-4 text-orange-600" />
+                      <span className="text-sm text-orange-800">
+                        {overdueOrders.length} order(s) are overdue by more than {overdueThresholdDays} days
+                      </span>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-y-1 sm:gap-y-2 text-xs sm:text-sm">
-                      <div className="text-muted-foreground">Total Orders:</div>
-                      <div className="font-medium">{totalOrders}</div>
-                      
-                      <div className="text-muted-foreground">Pending Orders:</div>
-                      <div className="font-medium">{pendingOrders}</div>
-                      
-                      <div className="text-muted-foreground">Overdue Orders:</div>
-                      <div className="font-medium text-destructive">{overdueOrders.length}</div>
-                      
-                      <div className="text-muted-foreground">Pending Amount:</div>
-                      <div className="font-medium">₹{pendingAmount.toFixed(2)}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {showPdfPreview ? (
-                  <div className="border rounded-lg overflow-hidden" style={{ height: '70vh' }}>
-                    <PDFViewer width="100%" height="100%" className="border-0">
-                      <InvoicePDF 
-                        customer={customer} 
-                        orders={customerOrders} 
-                        currentDate={invoiceDate}
-                        invoiceNumber={invoiceNumber}
-                        dueDate={dueDate}
-                        showPaid={includeAllOrders}
-                        payments={customerPayments}
-                      />
-                    </PDFViewer>
-                  </div>
-                ) : (
-                  <div className="border border-dashed border-gray-300 rounded-lg p-8 bg-gray-50 flex flex-col items-center justify-center" style={{ minHeight: '300px' }}>
-                    <FileTextIcon className="w-16 h-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">PDF Preview Hidden</h3>
-                    <p className="text-sm text-gray-500 text-center max-w-md">
-                      Click "Show PDF Preview" to view the complete invoice document with all details.
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => setShowPdfPreview(true)}
-                    >
-                      <EyeIcon className="w-4 h-4 mr-2" />
-                      Show PDF Preview
-                    </Button>
                   </div>
                 )}
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 p-2 text-left">Order ID</th>
+                        <th className="border border-gray-200 p-2 text-left">Date</th>
+                        <th className="border border-gray-200 p-2 text-left">Items</th>
+                        <th className="border border-gray-200 p-2 text-right">Amount</th>
+                        <th className="border border-gray-200 p-2 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="border border-gray-200 p-4 text-center text-gray-500">
+                            No orders found for this customer
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredOrders.map((order, index) => {
+                          const isOverdue = overdueOrders.some(o => o.id === order.id);
+                          const orderDate = typeof order.date === 'string' ? parseISO(order.date) : 
+                                           order.date instanceof Date ? order.date : new Date();
+                          
+                          return (
+                            <tr key={order.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-200 p-2">
+                                <div className="text-sm">
+                                  {getOrderIdentifier(order, index)}
+                                </div>
+                              </td>
+                              <td className="border border-gray-200 p-2">
+                                {format(orderDate, 'dd/MM/yyyy')}
+                              </td>
+                              <td className="border border-gray-200 p-2">
+                                <div className="text-sm max-w-xs truncate" title={formatOrderItems(order.items)}>
+                                  {formatOrderItems(order.items)}
+                                </div>
+                              </td>
+                              <td className="border border-gray-200 p-2 text-right font-mono">
+                                {formatCurrency(order.total)}
+                              </td>
+                              <td className="border border-gray-200 p-2 text-center">
+                                <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                  order.status === 'paid' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : isOverdue 
+                                      ? 'bg-red-100 text-red-800' 
+                                      : 'bg-orange-100 text-orange-800'
+                                }`}>
+                                  {order.status === 'paid' ? 'PAID' : isOverdue ? 'OVERDUE' : 'PENDING'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Totals */}
+                <div className="mt-6 flex justify-end">
+                  <div className="w-72">
+                    <div className="border border-gray-200 rounded">
+                      <div className="border-b border-gray-200 p-3 flex justify-between">
+                        <span>Subtotal:</span>
+                        <span className="font-mono">{formatCurrency(calculations.ordersGrandTotal)}</span>
+                      </div>
+                      <div className="border-b border-gray-200 p-3 flex justify-between">
+                        <span>Tax (5% GST):</span>
+                        <span className="font-mono">{formatCurrency(calculations.taxAmount)}</span>
+                      </div>
+                      <div className="border-b border-gray-200 p-3 flex justify-between">
+                        <span>Total Paid:</span>
+                        <span className="font-mono text-green-600">-{formatCurrency(calculations.adjustedTotalPaid)}</span>
+                      </div>
+                      <div className="bg-gray-50 p-3 flex justify-between font-bold">
+                        <span>Amount Due:</span>
+                        <span className="font-mono text-lg">{formatCurrency(calculations.totalPending)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="settings" className="p-6 pt-4 space-y-4">
+
+            {/* Payment Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Invoice Settings</CardTitle>
-                <CardDescription>
-                  Customize your invoice details
-                </CardDescription>
+                <CardTitle>Payment Information</CardTitle>
               </CardHeader>
-              
-              <CardContent className="space-y-6">
-                {/* Basic Settings */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="invoiceNumber">Invoice Number</Label>
-                    <div className="flex">
-                      <Input 
-                        id="invoiceNumber" 
-                        value={invoiceNumber} 
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="ml-2"
-                        onClick={copyInvoiceNumber}
-                      >
-                        <ClipboardCopyIcon className="h-4 w-4" />
-                      </Button>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium mb-3">Payment Methods:</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>UPI ID:</strong> 9514499968@ybl</p>
+                      <p><strong>Phone:</strong> +91 9514499968</p>
+                      <p><strong>Account Name:</strong> Bismi Broiler's</p>
                     </div>
+                    
+                    <h4 className="font-medium mt-4 mb-2">Payment Terms:</h4>
+                    <ul className="text-sm space-y-1 text-gray-600">
+                      <li>• Payment is due within 15 days of invoice date</li>
+                      <li>• Late payments may be subject to 2% monthly interest charges</li>
+                      <li>• For queries regarding this invoice, please contact our accounts department</li>
+                    </ul>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="invoiceDate">Invoice Date</Label>
-                    <div className="flex">
-                      <Input 
-                        id="invoiceDate" 
-                        type="date" 
-                        value={invoiceDate} 
-                        onChange={(e) => setInvoiceDate(e.target.value)}
+                  <div className="flex justify-center items-center">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">Scan QR Code for Payment</p>
+                      <img
+                        src={qrCodeImage}
+                        alt="Payment QR Code"
+                        className="w-32 h-32 border border-gray-200 rounded"
                       />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="dueDate">Due Date</Label>
-                    <div className="flex">
-                      <Input 
-                        id="dueDate" 
-                        type="date" 
-                        value={dueDate} 
-                        onChange={(e) => setDueDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                {/* Content Options */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-sm">Content Options</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="includeAllOrders" 
-                      checked={includeAllOrders}
-                      onCheckedChange={(checked) => setIncludeAllOrders(!!checked)}
-                    />
-                    <label
-                      htmlFor="includeAllOrders"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Include paid orders in invoice
-                    </label>
-                  </div>
-                  
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-md flex items-start space-x-2">
-                    <InfoIcon className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-amber-800">
-                      <p className="font-medium">Payment Reminder</p>
-                      <p className="mt-1">
-                        This invoice will include a payment reminder notice for any orders that are 
-                        more than 15 days overdue. Currently, there {overdueOrders.length === 1 ? 'is' : 'are'} <span className="font-semibold">{overdueOrders.length}</span> overdue {overdueOrders.length === 1 ? 'order' : 'orders'}.
-                      </p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-          
-          <TabsContent value="export" className="p-6 pt-4 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Export Options</CardTitle>
-                <CardDescription>
-                  Download or share the invoice
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Download PDF */}
-                  <Card className="border-2 border-primary/10 hover:border-primary/20 transition-colors">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center">
-                        <DownloadIcon className="w-4 h-4 mr-2 text-primary" />
-                        Download PDF
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Download the invoice as a PDF file to your device.
-                      </p>
-                      <PDFDownloadLink
-                        document={
-                          <InvoicePDF 
-                            customer={customer} 
-                            orders={customerOrders} 
-                            currentDate={invoiceDate}
-                            invoiceNumber={invoiceNumber}
-                            dueDate={dueDate}
-                            showPaid={includeAllOrders}
-                          />
-                        }
-                        fileName={`invoice-${customer.name}-${invoiceNumber}.pdf`}
-                        className="w-full"
-                      >
-                        {({ loading, error }) => (
-                          <Button 
-                            className="w-full" 
-                            disabled={loading}
-                          >
-                            {loading ? 'Generating PDF...' : 'Download Invoice'}
-                          </Button>
-                        )}
-                      </PDFDownloadLink>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Print Invoice */}
-                  <Card className="border-2 border-primary/10 hover:border-primary/20 transition-colors">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center">
-                        <PrinterIcon className="w-4 h-4 mr-2 text-primary" />
-                        Print Invoice
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Open a printable view of the invoice for physical copies.
-                      </p>
-                      <Button 
-                        className="w-full"
-                        onClick={() => {
-                          setActiveTab('preview');
-                          setShowPdfPreview(true);
-                          setTimeout(() => {
-                            window.print();
-                          }, 500);
-                        }}
-                      >
-                        Print Invoice
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <Separator />
-                
-                {/* Future features section */}
-                <div className="space-y-2">
-                  <h3 className="font-medium">Coming Soon</h3>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4 flex items-center">
-                        <MailIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                        <div>
-                          <h4 className="text-sm font-medium">Email Invoice</h4>
-                          <p className="text-xs text-muted-foreground">Send directly to customer</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4 flex items-center">
-                        <ShareIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                        <div>
-                          <h4 className="text-sm font-medium">Share Invoice</h4>
-                          <p className="text-xs text-muted-foreground">Via WhatsApp or SMS</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4 flex items-center">
-                        <CreditCardIcon className="w-4 h-4 mr-3 text-muted-foreground" />
-                        <div>
-                          <h4 className="text-sm font-medium">Payment Link</h4>
-                          <p className="text-xs text-muted-foreground">Generate payment URL</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <div className="text-xs sm:text-sm text-muted-foreground flex items-center">
-            <CheckCircle2Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500 flex-shrink-0" />
-            <span>Invoice #{invoiceNumber} is ready</span>
-          </div>
-          <div className="flex flex-col xs:flex-row w-full sm:w-auto gap-2 xs:space-x-2">
-            <Button variant="outline" onClick={onClose} className="text-xs sm:text-sm h-8 sm:h-9 w-full xs:w-auto">Close</Button>
-            <PDFDownloadLink
-              document={
-                <InvoicePDF 
-                  customer={customer} 
-                  orders={customerOrders} 
-                  currentDate={invoiceDate}
+
+          <TabsContent value="pdf" className="space-y-4">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <PDFViewer width="100%" height="600px" className="border-none">
+                <InvoicePDF
+                  customer={customer}
+                  orders={filteredOrders}
+                  currentDate={currentDate}
                   invoiceNumber={invoiceNumber}
                   dueDate={dueDate}
-                  showPaid={includeAllOrders}
-                  payments={customerPayments}
+                  showPaid={showPaid}
+                  overdueThresholdDays={overdueThresholdDays}
+                  payments={transactions}
                 />
-              }
-              fileName={`invoice-${customer.name}-${invoiceNumber}.pdf`}
-              className="w-full xs:w-auto"
-            >
-              {({ loading }) => (
-                <Button disabled={loading} className="text-xs sm:text-sm h-8 sm:h-9 w-full">
-                  {loading ? 'Generating...' : 'Download Invoice'}
+              </PDFViewer>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Action Buttons */}
+        <Card>
+          <CardFooter className="flex justify-between">
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handlePrintInvoice}>
+                <PrinterIcon className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              <PDFDownloadLink
+                document={
+                  <InvoicePDF
+                    customer={customer}
+                    orders={filteredOrders}
+                    currentDate={currentDate}
+                    invoiceNumber={invoiceNumber}
+                    dueDate={dueDate}
+                    showPaid={showPaid}
+                    overdueThresholdDays={overdueThresholdDays}
+                    payments={transactions}
+                  />
+                }
+                fileName={pdfFileName}
+              >
+                {({ blob, url, loading, error }) => (
+                  <Button variant="outline" disabled={loading}>
+                    <DownloadIcon className="h-4 w-4 mr-2" />
+                    {loading ? 'Generating...' : 'Download PDF'}
+                  </Button>
+                )}
+              </PDFDownloadLink>
+              <Button variant="outline" onClick={handleEmailInvoice}>
+                <MailIcon className="h-4 w-4 mr-2" />
+                Email
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              {onPaymentMade && calculations.totalPending > 0 && (
+                <Button onClick={() => onPaymentMade?.(calculations.totalPending)}>
+                  <CreditCardIcon className="h-4 w-4 mr-2" />
+                  Record Payment
                 </Button>
               )}
-            </PDFDownloadLink>
-          </div>
-        </div>
+            </div>
+          </CardFooter>
+        </Card>
       </DialogContent>
     </Dialog>
   );
