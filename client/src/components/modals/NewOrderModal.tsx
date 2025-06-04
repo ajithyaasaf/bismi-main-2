@@ -47,7 +47,11 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
     { value: 'leg-piece', label: 'Leg Piece' },
     { value: 'goat', label: 'Goat' },
     { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' }
+    { value: 'beef', label: 'Beef' },
+    { value: 'kodal', label: 'Kodal' },
+    { value: 'chops', label: 'Chops' },
+    { value: 'boneless', label: 'Boneless' },
+    { value: 'order', label: 'Order' }
   ];
   
   // Hotels (filtered customers)
