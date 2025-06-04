@@ -1,3 +1,4 @@
+// @ts-ignore
 import html2pdf from 'html2pdf.js';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -6,17 +7,8 @@ export interface PDFGenerationOptions {
   filename?: string;
   margin?: number;
   image?: { type: string; quality: number };
-  html2canvas?: {
-    scale: number;
-    useCORS: boolean;
-    allowTaint: boolean;
-    backgroundColor: string;
-  };
-  jsPDF?: {
-    unit: string;
-    format: string;
-    orientation: string;
-  };
+  html2canvas?: any;
+  jsPDF?: any;
 }
 
 export class PDFService {
@@ -151,8 +143,12 @@ export class PDFService {
           })
           .from(element)
           .outputPdf('blob')
-          .then((blob: Blob) => {
-            resolve(blob);
+          .then((result: string | Blob) => {
+            if (result instanceof Blob) {
+              resolve(result);
+            } else {
+              reject(new Error('Expected Blob but received string'));
+            }
           })
           .catch((error: Error) => {
             reject(new Error(`html2pdf failed: ${error.message}`));
