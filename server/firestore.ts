@@ -4,7 +4,7 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
 // Create a type that can represent either admin or client Firestore
-type FirestoreDB = AdminFirestore | ClientFirestore;
+type FirestoreDB = admin.firestore.Firestore | Firestore;
 
 // Function to initialize Firebase - try Admin first, then fall back to client SDK
 const initializeFirebase = () => {
