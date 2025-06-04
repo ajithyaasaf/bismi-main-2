@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, addDays, parseISO } from 'date-fns';
 import { Download, Eye, Printer, Mail, Settings, FileText, AlertTriangle } from 'lucide-react';
 import InvoiceTemplate from './InvoiceTemplate';
-import { pdfService, PDFGenerationOptions } from '@/services/PDFService';
+import { enterpriseInvoiceService, InvoiceGenerationOptions } from '@/services/EnterpriseInvoiceService';
 
 interface CustomerInvoiceProps {
   isOpen: boolean;
@@ -115,36 +115,25 @@ export function CustomerInvoice({
     setGenerationProgress(10);
 
     try {
-      // Prepare the element for PDF generation
-      const preparedElement = await pdfService.prepareElementForPDF(invoiceRef.current);
       setGenerationProgress(30);
 
       // Configure PDF options
-      const options: PDFGenerationOptions = {
+      const options: InvoiceGenerationOptions = {
         filename: `invoice-${customer.name.replace(/\s+/g, '-')}-${invoiceNumber}.pdf`,
-        margin: 0.5,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: {
-          unit: 'in',
-          format: 'a4',
-          orientation: 'portrait'
-        }
+        quality: 0.95,
+        scale: 2,
+        format: 'a4',
+        orientation: 'portrait'
       };
 
       setGenerationProgress(50);
 
-      // Generate PDF
-      const pdfBlob = await pdfService.generatePDF(preparedElement, options);
+      // Generate PDF using enterprise service
+      const pdfBlob = await enterpriseInvoiceService.generateInvoicePDF(invoiceRef.current, options);
       setGenerationProgress(90);
 
       // Download the PDF
-      await pdfService.downloadPDF(pdfBlob, options.filename);
+      await enterpriseInvoiceService.downloadPDF(pdfBlob, options.filename || 'invoice.pdf');
       setGenerationProgress(100);
 
       toast({
