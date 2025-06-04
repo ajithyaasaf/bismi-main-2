@@ -67,8 +67,16 @@ export default function InventoryList({ items, onEdit, onDelete }: InventoryList
               <div className="grid grid-cols-2 gap-2 p-4">
                 <div className="space-y-1">
                   <p className="text-xs text-gray-500">Quantity</p>
-                  <p className={`font-medium ${item.quantity < 5 ? 'text-amber-600' : ''} ${item.quantity < 2 ? 'text-red-600' : ''}`}>
-                    {item.quantity.toFixed(2)} kg
+                  <p className={`font-medium ${
+                    item.quantity < 0 
+                      ? 'text-red-700 font-bold' 
+                      : item.quantity < 2 
+                      ? 'text-red-600' 
+                      : item.quantity < 5 
+                      ? 'text-amber-600' 
+                      : ''
+                  }`}>
+                    {item.quantity < 0 ? 'Negative: ' : ''}{item.quantity.toFixed(2)} kg
                   </p>
                 </div>
                 
@@ -104,8 +112,16 @@ export default function InventoryList({ items, onEdit, onDelete }: InventoryList
               {items.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{formatType(item.type)}</TableCell>
-                  <TableCell className={`text-right ${item.quantity < 5 ? 'text-amber-600 font-medium' : ''} ${item.quantity < 2 ? 'text-red-600 font-medium' : ''}`}>
-                    {item.quantity.toFixed(2)}
+                  <TableCell className={`text-right ${
+                    item.quantity < 0 
+                      ? 'text-red-700 font-bold' 
+                      : item.quantity < 2 
+                      ? 'text-red-600 font-medium' 
+                      : item.quantity < 5 
+                      ? 'text-amber-600 font-medium' 
+                      : ''
+                  }`}>
+                    {item.quantity < 0 ? 'Negative: ' : ''}{item.quantity.toFixed(2)}
                   </TableCell>
                   <TableCell className="text-right">
                     ₹{item.rate.toFixed(2)}
