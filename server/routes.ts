@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { firebaseStorage } from "./firebase-storage";
+import { BalanceValidator } from "./balance-validator";
 import { v4 as uuidv4 } from 'uuid';
 import { 
   insertSupplierSchema, 
@@ -551,6 +552,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to create transaction:", error);
       res.status(500).json({ message: "Failed to create transaction" });
+    }
+  });
+
+  // Balance validation routes
+  apiRouter.get("/validate-balances", async (req: Request, res: Response) => {
+    try {
+      const storage = await getStorage();
+      const validator = new BalanceValidator(storage);
+      const report = await validator.validateAllBalances();
+      res.json(report);
+    } catch (error) {
+      console.error("Failed to validate balances:", error);
+      res.status(500).json({ message: "Failed to validate balances" });
+    }
+  });
+
+  apiRouter.post("/fix-balances", async (req: Request, res: Response) => {
+    try {
+      const storage = await getStorage();
+      const validator = new BalanceValidator(storage);
+      await validator.fixDiscrepancies();
+      res.json({ message: "Balance discrepancies fixed successfully" });
+    } catch (error) {
+      console.error("Failed to fix balances:", error);
+      res.status(500).json({ message: "Failed to fix balances" });
     }
   });
 
