@@ -40,9 +40,57 @@ async function initializeDemoData(storage: MemStorage) {
     });
     
     await storage.createInventoryItem({
+      type: "eeral",
+      quantity: 75,
+      rate: 180
+    });
+    
+    await storage.createInventoryItem({
+      type: "leg-piece",
+      quantity: 60,
+      rate: 200
+    });
+    
+    await storage.createInventoryItem({
       type: "goat",
       quantity: 50,
       rate: 300
+    });
+    
+    await storage.createInventoryItem({
+      type: "kadai",
+      quantity: 40,
+      rate: 250
+    });
+    
+    await storage.createInventoryItem({
+      type: "beef",
+      quantity: 80,
+      rate: 220
+    });
+    
+    await storage.createInventoryItem({
+      type: "kodal",
+      quantity: 30,
+      rate: 160
+    });
+    
+    await storage.createInventoryItem({
+      type: "chops",
+      quantity: 45,
+      rate: 240
+    });
+    
+    await storage.createInventoryItem({
+      type: "boneless",
+      quantity: 35,
+      rate: 280
+    });
+    
+    await storage.createInventoryItem({
+      type: "order",
+      quantity: 25,
+      rate: 320
     });
     
     // Add sample customer

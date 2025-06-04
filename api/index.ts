@@ -62,9 +62,72 @@ const suppliers: Supplier[] = [
 const inventory: InventoryItem[] = [
   {
     id: uuidv4(),
-    type: "Chicken",
+    type: "chicken",
     quantity: 50,
-    rate: 120,
+    rate: 150,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "eeral",
+    quantity: 75,
+    rate: 180,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "leg-piece",
+    quantity: 60,
+    rate: 200,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "goat",
+    quantity: 50,
+    rate: 300,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "kadai",
+    quantity: 40,
+    rate: 250,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "beef",
+    quantity: 80,
+    rate: 220,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "kodal",
+    quantity: 30,
+    rate: 160,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "chops",
+    quantity: 45,
+    rate: 240,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "boneless",
+    quantity: 35,
+    rate: 280,
+    updatedAt: new Date()
+  },
+  {
+    id: uuidv4(),
+    type: "order",
+    quantity: 25,
+    rate: 320,
     updatedAt: new Date()
   }
 ];

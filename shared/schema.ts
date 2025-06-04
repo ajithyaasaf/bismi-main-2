@@ -37,7 +37,7 @@ export type Supplier = typeof suppliers.$inferSelect;
 // Inventory schema
 export const inventory = pgTable("inventory", {
   id: text("id").primaryKey(), // Using UUID strings
-  type: text("type").notNull(), // chicken, eeral, leg piece, goat, kadai, beef
+  type: text("type").notNull(), // chicken, eeral, leg piece, goat, kadai, beef, kodal, chops, boneless, order
   quantity: real("quantity").notNull().default(0), // in kg
   rate: real("rate").notNull().default(0), // per kg, varies daily
   updatedAt: timestamp("updated_at").defaultNow(),
