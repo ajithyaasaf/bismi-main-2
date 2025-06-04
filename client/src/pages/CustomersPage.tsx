@@ -10,7 +10,7 @@ import CustomerForm from "@/components/customers/CustomerForm";
 import CustomersList from "@/components/customers/CustomersList";
 import PaymentModal from "@/components/modals/PaymentModal";
 import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
-import CustomerInvoice from "@/components/invoices/CustomerInvoice";
+import { CustomerInvoice } from "@/components/invoices/CustomerInvoice";
 import * as CustomerService from "@/lib/customer-service";
 import * as OrderService from "@/lib/order-service";
 
