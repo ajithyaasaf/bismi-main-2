@@ -52,30 +52,28 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
         <div className="flex flex-col flex-1 overflow-y-auto">
           <nav className="flex-1 px-4 py-6 space-y-2">
             {navItems.map((item) => (
-              <div key={item.path} className="nav-item">
-                <Link href={item.path} onClick={closeSidebar}>
+              <Link key={item.path} href={item.path} onClick={closeSidebar}>
+                <div
+                  className={`
+                  flex items-center px-4 py-3 rounded-lg group transition-all duration-200 cursor-pointer
+                  ${
+                    isActive(item.path)
+                      ? "text-white bg-orange-600 shadow-md"
+                      : "text-gray-200 hover:bg-gray-700/50 hover:text-white"
+                  }
+                `}
+                >
                   <div
                     className={`
-                    flex items-center px-4 py-3 rounded-lg group transition-all duration-200 cursor-pointer
-                    ${
-                      isActive(item.path)
-                        ? "text-white bg-orange-600 shadow-md"
-                        : "text-gray-200 hover:bg-gray-700/50 hover:text-white"
-                    }
+                    flex items-center justify-center w-10 h-10 rounded-full mr-3
+                    ${isActive(item.path) ? "bg-white/20" : "bg-gray-800"}
                   `}
                   >
-                    <div
-                      className={`
-                      flex items-center justify-center w-10 h-10 rounded-full mr-3
-                      ${isActive(item.path) ? "bg-white/20" : "bg-gray-800"}
-                    `}
-                    >
-                      <i className={`fas ${item.icon}`}></i>
-                    </div>
-                    <span className="font-medium">{item.name}</span>
+                    <i className={`fas ${item.icon}`}></i>
                   </div>
-                </Link>
-              </div>
+                  <span className="font-medium">{item.name}</span>
+                </div>
+              </Link>
             ))}
           </nav>
         </div>

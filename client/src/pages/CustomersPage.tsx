@@ -10,7 +10,7 @@ import * as CustomerService from "@/lib/customer-service";
 import * as OrderService from "@/lib/order-service";
 import PaymentModal from "@/components/modals/PaymentModal";
 import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
-import { CustomerInvoice } from "@/components/invoices/CustomerInvoice";
+
 
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -23,8 +23,7 @@ export default function CustomersPage() {
   const [firestoreCustomers, setFirestoreCustomers] = useState<any[]>([]);
   const [firestoreOrders, setFirestoreOrders] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-  const [invoiceCustomer, setInvoiceCustomer] = useState<Customer | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -227,17 +226,7 @@ export default function CustomersPage() {
     refreshFirestoreData();
   };
   
-  // Handler for generating invoice
-  const handleGenerateInvoice = (customer: Customer) => {
-    setInvoiceCustomer(customer);
-    setIsInvoiceModalOpen(true);
-  };
-  
-  // Close invoice modal
-  const closeInvoiceModal = () => {
-    setIsInvoiceModalOpen(false);
-    setInvoiceCustomer(null);
-  };
+
   
   // We've removed the manual recalculation function as it's now handled automatically
 
@@ -308,15 +297,7 @@ export default function CustomersPage() {
         />
       )}
       
-      {/* Invoice Modal */}
-      {invoiceCustomer && (
-        <CustomerInvoice
-          isOpen={isInvoiceModalOpen}
-          onClose={closeInvoiceModal}
-          customer={invoiceCustomer}
-          orders={firestoreOrders as Order[]}
-        />
-      )}
+
     </div>
   );
 }
