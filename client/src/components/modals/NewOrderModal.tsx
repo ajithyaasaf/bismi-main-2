@@ -241,46 +241,7 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         type: customerType
       });
       
-      // If the order payment is pending, update customer pending amount
-      if (paymentStatus === 'pending') {
-        console.log('Updating customer pending amount');
-        
-        // Get the customer ID from either hotel or random customer
-        const customerIdToUpdate = customerType === 'hotel' ? customerId : orderCustomerId;
-        
-        if (customerIdToUpdate) {
-          console.log(`Recalculating pending amount for customer ${customerIdToUpdate} based on all pending orders`);
-          
-          try {
-            // Use our recalculate function to update the customer's pending amount properly
-            await CustomerService.recalculateCustomerPendingAmount(customerIdToUpdate);
-          } catch (error) {
-            console.error(`Failed to recalculate pending amount for customer ${customerIdToUpdate}:`, error);
-            
-            // Fall back to manual update if recalculation fails
-            try {
-              const customer = await CustomerService.getCustomerById(customerIdToUpdate);
-              if (customer) {
-                // Safely get the pending amount as a number
-                let pendingAmount = 0;
-                if (customer && typeof customer === 'object' && 'pendingAmount' in customer) {
-                  pendingAmount = typeof customer.pendingAmount === 'number' ? customer.pendingAmount : 0;
-                }
-                
-                const newPending = pendingAmount + total;
-                
-                console.log(`Falling back to manual update: ${pendingAmount} + ${total} = ${newPending}`);
-                
-                await CustomerService.updateCustomer(customerIdToUpdate, {
-                  pendingAmount: newPending
-                });
-              }
-            } catch (fallbackError) {
-              console.error('Fallback pending amount update also failed:', fallbackError);
-            }
-          }
-        }
-      }
+
       
       // Show success message
       toast({

@@ -224,6 +224,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add stock route - handles inventory updates, supplier debt, and transaction creation
+  apiRouter.post("/add-stock", async (req: Request, res: Response) => {
+    try {
+      const { type, quantity, rate, supplierId } = req.body;
+      
+      // Validate input
+      if (!type || !quantity || !rate || !supplierId) {
+        return res.status(400).json({ message: "Missing required fields: type, quantity, rate, supplierId" });
+      }
+      
+      const qtyNum = parseFloat(quantity);
+      const rateNum = parseFloat(rate);
+      
+      if (isNaN(qtyNum) || isNaN(rateNum) || rateNum <= 0) {
+        return res.status(400).json({ message: "Invalid quantity or rate values" });
+      }
+
+      const storage = await getStorage();
+      
+      // 1. Find or create inventory item
+      const inventoryItems = await storage.getAllInventory();
+      const existingItem = inventoryItems.find(item => item.type === type);
+      
+      let inventoryResult;
+      if (existingItem) {
+        // Update existing inventory
+        const newQuantity = existingItem.quantity + qtyNum;
+        inventoryResult = await storage.updateInventoryItem(existingItem.id, {
+          quantity: newQuantity,
+          rate: rateNum
+        });
+      } else {
+        // Create new inventory item
+        inventoryResult = await storage.createInventoryItem({
+          type,
+          quantity: qtyNum,
+          rate: rateNum
+        });
+      }
+      
+      // 2. Update supplier debt
+      const supplier = await storage.getSupplier(supplierId);
+      if (!supplier) {
+        return res.status(404).json({ message: "Supplier not found" });
+      }
+      
+      const totalAmount = qtyNum * rateNum;
+      const newDebt = (supplier.debt || 0) + totalAmount;
+      
+      await storage.updateSupplier(supplierId, { debt: newDebt });
+      
+      // 3. Create transaction record
+      const transaction = await storage.createTransaction({
+        type: "expense",
+        amount: totalAmount,
+        entityId: supplierId,
+        entityType: "supplier",
+        description: `Stock purchase: ${qtyNum} kg of ${type} at ₹${rateNum}/kg`,
+        date: new Date()
+      });
+
+      res.status(201).json({
+        inventory: inventoryResult,
+        transaction,
+        message: `Added ${qtyNum} kg of ${type} to inventory`
+      });
+    } catch (error) {
+      console.error("Failed to add stock:", error);
+      res.status(500).json({ message: "Failed to add stock" });
+    }
+  });
+
   // Customer routes
   apiRouter.get("/customers", async (req: Request, res: Response) => {
     try {
@@ -368,7 +440,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const storage = await getStorage();
+      
+      // Create the order
       const order = await storage.createOrder(result.data);
+      
+      // Update inventory based on order items (Enterprise mode - allows negative stock)
+      if (result.data.items && Array.isArray(result.data.items)) {
+        const inventoryItems = await storage.getAllInventory();
+        
+        for (const item of result.data.items) {
+          if (item.type && typeof item.quantity === 'number') {
+            const inventoryItem = inventoryItems.find(inv => inv.type === item.type);
+            if (inventoryItem) {
+              const newQuantity = inventoryItem.quantity - item.quantity;
+              await storage.updateInventoryItem(inventoryItem.id, {
+                quantity: newQuantity // Allow negative quantities for enterprise operations
+              });
+            }
+          }
+        }
+      }
+      
+      // If payment is pending, update customer pending amount
+      if (result.data.status === 'pending' && result.data.customerId && result.data.total) {
+        const customer = await storage.getCustomer(result.data.customerId);
+        if (customer) {
+          const newPending = (customer.pendingAmount || 0) + result.data.total;
+          await storage.updateCustomer(result.data.customerId, {
+            pendingAmount: newPending
+          });
+        }
+      }
+      
       res.status(201).json(order);
     } catch (error) {
       console.error("Failed to create order:", error);

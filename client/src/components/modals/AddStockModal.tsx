@@ -96,66 +96,14 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
       
       setIsSubmitting(true);
       
-      // 1. Fetch current inventory items from Firestore
-      const inventoryItems = await InventoryService.getInventoryItems();
-      console.log('Retrieved inventory items from Firestore:', inventoryItems);
-      
-      const existingItem = inventoryItems.find((item: any) => item.type === type);
-      
-      // 2. Update or add inventory in Firestore (Enterprise mode - allows negative stock)
-      let inventoryResult;
-      if (existingItem && existingItem.id && typeof existingItem.quantity === 'number') {
-        // Update existing inventory in Firestore
-        const newQuantity = existingItem.quantity + qtyNum;
-        console.log(`Updating existing inventory item: ${existingItem.id} from ${existingItem.quantity} to ${newQuantity}`);
-        
-        if (newQuantity < 0) {
-          console.log(`⚠️ Stock adjustment will result in negative inventory: ${newQuantity}kg - Enterprise mode allows this`);
-        }
-        
-        inventoryResult = await InventoryService.updateInventoryItem(existingItem.id, {
-          quantity: newQuantity, // Allow negative quantities for enterprise operations
-          rate: rateNum // Update with latest rate
-        });
-      } else {
-        // Create new inventory item in Firestore
-        console.log('Creating new inventory item');
-        inventoryResult = await InventoryService.addInventoryItem({
-          type,
-          quantity: qtyNum,
-          rate: rateNum
-        });
-      }
-      
-      console.log('Inventory operation result:', inventoryResult);
-      
-      // 3. Update supplier debt in Firestore
-      const selectedSupplier = suppliers.find(s => s.id === supplier);
-      if (selectedSupplier) {
-        const totalAmount = qtyNum * rateNum;
-        const currentDebt = selectedSupplier.debt || 0;
-        const newDebt = currentDebt + totalAmount;
-        
-        console.log(`Updating supplier ${supplier} debt from ${currentDebt} to ${newDebt}`);
-        
-        // Update supplier in Firestore
-        const supplierResult = await SupplierService.updateSupplier(supplier, {
-          debt: newDebt
-        });
-        
-        console.log('Supplier update result:', supplierResult);
-        
-        // Also create a transaction record
-        const transactionResult = await TransactionService.addTransaction({
-          type: 'expense',
-          amount: totalAmount,
-          entityId: supplier,
-          entityType: 'supplier',
-          description: `Stock purchase: ${qtyNum} kg of ${type} at ₹${rateNum}/kg`
-        });
-        
-        console.log('Transaction created:', transactionResult);
-      }
+      // Add stock via API - single source of truth
+      // The API will handle inventory updates, supplier debt, and transaction creation
+      await apiRequest('POST', '/api/add-stock', {
+        type,
+        quantity: qtyNum,
+        rate: rateNum,
+        supplierId: supplier
+      });
       
       // Show success message
       toast({

@@ -94,7 +94,7 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       
       // Close modal and reset form
-      setType(ITEM_TYPES[0]);
+      setType(ITEM_TYPES[0].value);
       setQuantity("");
       setRate("");
       onClose();
