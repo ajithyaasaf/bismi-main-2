@@ -1,4 +1,5 @@
 import { Inventory } from "@shared/schema";
+import { getItemLabel } from "@shared/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -29,11 +30,9 @@ export default function InventoryList({ items, onEdit, onDelete }: InventoryList
     );
   }
 
-  // Helper function to format type names properly
+  // Use centralized item label formatting
   const formatType = (type: string) => {
-    return type.split('-').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    return getItemLabel(type);
   };
 
   return (

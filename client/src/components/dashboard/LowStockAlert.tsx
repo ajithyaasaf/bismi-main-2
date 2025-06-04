@@ -1,4 +1,5 @@
 import { Inventory } from "@shared/schema";
+import { getItemLabel } from "@shared/constants";
 
 interface LowStockAlertProps {
   lowStockItems: Inventory[];
@@ -26,7 +27,7 @@ export default function LowStockAlert({ lowStockItems, onAddStock }: LowStockAle
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</p>
+                  <p className="text-sm font-medium text-gray-900">{getItemLabel(item.type)}</p>
                   <p className="text-xs text-gray-500">Only {item.quantity.toFixed(1)} kg left</p>
                 </div>
               </div>
