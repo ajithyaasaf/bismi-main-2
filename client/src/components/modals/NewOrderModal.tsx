@@ -173,10 +173,10 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         const quantity = parseFloat(item.quantity);
         const rate = parseFloat(item.rate);
         
-        if (isNaN(quantity) || quantity <= 0) {
+        if (isNaN(quantity) || quantity === 0) {
           toast({
             title: "Invalid quantity",
-            description: `Please enter a valid quantity for ${item.type}`,
+            description: `Please enter a non-zero quantity for ${item.type}`,
             variant: "destructive"
           });
           hasError = true;

@@ -75,10 +75,10 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
       }
       
       const qtyNum = parseFloat(quantity);
-      if (isNaN(qtyNum) || qtyNum <= 0) {
+      if (isNaN(qtyNum)) {
         toast({
           title: "Invalid quantity",
-          description: "Please enter a valid positive quantity",
+          description: "Please enter a valid number (negative values allowed for stock adjustments)",
           variant: "destructive"
         });
         return;
@@ -102,13 +102,19 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
       
       const existingItem = inventoryItems.find((item: any) => item.type === type);
       
-      // 2. Update or add inventory in Firestore
+      // 2. Update or add inventory in Firestore (Enterprise mode - allows negative stock)
       let inventoryResult;
       if (existingItem && existingItem.id && typeof existingItem.quantity === 'number') {
         // Update existing inventory in Firestore
-        console.log(`Updating existing inventory item: ${existingItem.id}`);
+        const newQuantity = existingItem.quantity + qtyNum;
+        console.log(`Updating existing inventory item: ${existingItem.id} from ${existingItem.quantity} to ${newQuantity}`);
+        
+        if (newQuantity < 0) {
+          console.log(`⚠️ Stock adjustment will result in negative inventory: ${newQuantity}kg - Enterprise mode allows this`);
+        }
+        
         inventoryResult = await InventoryService.updateInventoryItem(existingItem.id, {
-          quantity: existingItem.quantity + qtyNum,
+          quantity: newQuantity, // Allow negative quantities for enterprise operations
           rate: rateNum // Update with latest rate
         });
       } else {

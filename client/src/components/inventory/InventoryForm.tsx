@@ -43,10 +43,10 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
     }
     
     const quantityValue = parseFloat(quantity);
-    if (isNaN(quantityValue) || quantityValue < 0) {
+    if (isNaN(quantityValue)) {
       toast({
         title: "Invalid quantity",
-        description: "Quantity must be a valid positive number or zero",
+        description: "Quantity must be a valid number (negative values allowed for enterprise management)",
         variant: "destructive",
       });
       return;
@@ -161,16 +161,20 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
             <Label htmlFor="quantity" className="text-right">
               Quantity (kg)
             </Label>
-            <Input
-              id="quantity"
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="col-span-3"
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-            />
+            <div className="col-span-3">
+              <Input
+                id="quantity"
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full"
+                placeholder="0.00"
+                step="0.01"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enterprise mode: Negative values allowed for inventory adjustments
+              </p>
+            </div>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
