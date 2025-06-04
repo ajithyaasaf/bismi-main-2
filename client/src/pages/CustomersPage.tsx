@@ -2,51 +2,62 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Customer, Order } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import CustomerForm from "@/components/customers/CustomerForm";
-import CustomersList from "@/components/customers/CustomersList";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import * as CustomerService from "@/lib/customer-service";
-import * as OrderService from "@/lib/order-service";
+import CustomerForm from "@/components/customers/CustomerForm";
+import CustomersList from "@/components/customers/CustomersList";
 import PaymentModal from "@/components/modals/PaymentModal";
 import ConfirmationDialog from "@/components/modals/ConfirmationDialog";
-import { CustomerInvoice } from "@/components/invoices/CustomerInvoice";
-
+import CustomerInvoice from "@/components/invoices/CustomerInvoice";
+import * as CustomerService from "@/lib/customer-service";
+import * as OrderService from "@/lib/order-service";
 
 export default function CustomersPage() {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentCustomer, setPaymentCustomer] = useState<{id: string, name: string, pendingAmount?: number} | null>(null);
-  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [firestoreCustomers, setFirestoreCustomers] = useState<any[]>([]);
   const [firestoreOrders, setFirestoreOrders] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [paymentCustomer, setPaymentCustomer] = useState<{id: string, name: string, pendingAmount: number} | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [invoiceCustomer, setInvoiceCustomer] = useState<Customer | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Load customers and orders from Firestore directly
+
+  // API data queries
+  const { data: customers = [], isLoading } = useQuery<Customer[]>({
+    queryKey: ['/api/customers'],
+  });
+
+  const { data: orders = [] } = useQuery<Order[]>({
+    queryKey: ['/api/orders'],
+  });
+
+  // Load data from Firestore
   useEffect(() => {
     async function loadFirestoreData() {
       try {
         setIsFirestoreLoading(true);
         
-        // Load customers
-        const customers = await CustomerService.getCustomers();
-        console.log("Loaded customers directly from Firestore:", customers);
-        setFirestoreCustomers(customers);
+        // Load customers from Firestore
+        const customersData = await CustomerService.getCustomers();
+        setFirestoreCustomers(customersData);
         
-        // Load orders for invoice generation
-        const orders = await OrderService.getOrders();
-        console.log("Loaded orders directly from Firestore:", orders);
-        setFirestoreOrders(orders);
+        // Load orders from Firestore
+        const ordersData = await OrderService.getOrders();
+        setFirestoreOrders(ordersData);
+        
+        console.log('Loaded customers directly from Firestore:', customersData);
+        console.log('Loaded orders directly from Firestore:', ordersData);
       } catch (error) {
-        console.error("Error loading data from Firestore:", error);
+        console.error('Error loading data from Firestore:', error);
       } finally {
         setIsFirestoreLoading(false);
       }
@@ -55,58 +66,43 @@ export default function CustomersPage() {
     loadFirestoreData();
   }, []);
 
-  // Fetch customers from API as backup
-  const { data: customers = [], isLoading } = useQuery<Customer[]>({
-    queryKey: ['/api/customers'],
-  });
-
-  const handleAddClick = () => {
+  const handleAddCustomer = () => {
     setSelectedCustomer(null);
     setIsFormOpen(true);
   };
 
-  const handleEditClick = (customer: Customer) => {
+  const handleEditCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = (customer: Customer) => {
+  const handleDeleteCustomer = (customer: Customer) => {
     setCustomerToDelete(customer);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const confirmDelete = async () => {
     if (!customerToDelete) return;
-    
+
     try {
-      // First delete from Firestore directly
-      try {
-        const result = await CustomerService.deleteCustomer(customerToDelete.id);
-        console.log(`Delete result from Firestore: ${result ? 'Success' : 'Not found'}`);
-      } catch (firestoreError) {
-        console.error("Error deleting customer from Firestore:", firestoreError);
-      }
-      
-      // Then delete via API for backward compatibility
-      await apiRequest('DELETE', `/api/customers/${customerToDelete.id}`, undefined);
+      await apiRequest('DELETE', `/api/customers/${customerToDelete.id}`);
       
       toast({
         title: "Customer deleted",
-        description: `${customerToDelete.name} has been successfully deleted`,
+        description: `${customerToDelete.name} has been deleted successfully`,
       });
-      
-      // Refresh local state
-      setFirestoreCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
-      
-      // Refresh API data via query cache
+
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
     } catch (error) {
-      console.error("Error during customer deletion:", error);
+      console.error("Failed to delete customer:", error);
       toast({
         title: "Error",
         description: "Failed to delete customer",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setCustomerToDelete(null);
     }
   };
 
@@ -166,71 +162,56 @@ export default function CustomersPage() {
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
+    setSelectedCustomer(null);
     
     // Refresh Firestore data
-    async function refreshFirestoreData() {
+    async function refreshFirestoreCustomers() {
       try {
         const customers = await CustomerService.getCustomers();
         console.log("Refreshed customers from Firestore:", customers);
         setFirestoreCustomers(customers);
-        
-        // Also refresh orders for invoice data
-        const orders = await OrderService.getOrders();
-        setFirestoreOrders(orders);
       } catch (error) {
-        console.error("Error refreshing data from Firestore:", error);
+        console.error("Error refreshing customers from Firestore:", error);
       }
     }
     
-    refreshFirestoreData();
+    refreshFirestoreCustomers();
   };
-  
-  // Handler for generating invoice
-  const handleGenerateInvoice = (customer: Customer) => {
+
+  const openInvoiceModal = (customer: Customer) => {
     setInvoiceCustomer(customer);
     setIsInvoiceModalOpen(true);
   };
-  
-  // Close invoice modal
+
   const closeInvoiceModal = () => {
     setIsInvoiceModalOpen(false);
     setInvoiceCustomer(null);
   };
-  
-  // We've removed the manual recalculation function as it's now handled automatically
 
-  // Determine which customers to display - prefer Firestore data when available
+  // Determine which data to display
   const displayCustomers = firestoreCustomers.length > 0 ? firestoreCustomers : customers;
   const isPageLoading = isFirestoreLoading && isLoading;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 font-sans">Customers</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage customers and pending payments</p>
+          <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
+          <p className="text-muted-foreground">
+            Manage your customer database and track orders
+          </p>
         </div>
-        <Button onClick={handleAddClick}>
-          <i className="fas fa-plus mr-2"></i> Add Customer
-        </Button>
+        <Button onClick={handleAddCustomer}>Add Customer</Button>
       </div>
 
-      {isPageLoading ? (
-        <div className="text-center py-10">
-          <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
-          <p className="mt-2 text-gray-600">Loading customers...</p>
-        </div>
-      ) : (
-        <>
-          <CustomersList 
-            customers={displayCustomers as Customer[]} 
-            onEdit={handleEditClick}
-            onDelete={handleDeleteClick}
-            onPayment={openPaymentModal}
-            onGenerateInvoice={handleGenerateInvoice}
-          />
-        </>
-      )}
+      <CustomersList
+        customers={displayCustomers}
+        isLoading={isPageLoading}
+        onEdit={handleEditCustomer}
+        onDelete={handleDeleteCustomer}
+        onPayment={openPaymentModal}
+        onInvoice={openInvoiceModal}
+      />
 
       {isFormOpen && (
         <CustomerForm

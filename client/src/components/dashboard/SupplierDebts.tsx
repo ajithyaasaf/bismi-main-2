@@ -1,26 +1,34 @@
-import { Supplier } from "@shared/schema";
-import { differenceInDays } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import * as SupplierService from "@/lib/supplier-service";
-import * as TransactionService from "@/lib/transaction-service";
-import PaymentModal from "@/components/modals/PaymentModal";
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Supplier, Transaction } from '@shared/schema';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import PaymentModal from '@/components/modals/PaymentModal';
+import * as SupplierService from '@/lib/supplier-service';
+import * as TransactionService from '@/lib/transaction-service';
 
-interface SupplierDebtsProps {
-  suppliers: Supplier[];
-}
-
-export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
-  const [isPaying, setIsPaying] = useState<string | null>(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<{id: string, name: string, debt?: number} | null>(null);
+export default function SupplierDebts() {
   const [firestoreSuppliers, setFirestoreSuppliers] = useState<any[]>([]);
   const [firestoreTransactions, setFirestoreTransactions] = useState<any[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [selectedSupplier, setSelectedSupplier] = useState<{id: string, name: string, debt?: number} | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [isPaying, setIsPaying] = useState<string | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // API data queries
+  const { data: suppliers = [], isLoading } = useQuery<Supplier[]>({
+    queryKey: ['/api/suppliers'],
+  });
+
+  const { data: transactions = [] } = useQuery<Transaction[]>({
+    queryKey: ['/api/transactions'],
+  });
 
   // Load data from Firestore
   useEffect(() => {
@@ -81,58 +89,6 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        // Record payment using Firestore service
-        const result = await SupplierService.recordSupplierPayment(
-          supplierId, 
-          amount,
-          `Payment to supplier: ${supplierName}`
-        );
-        
-        console.log('Payment recorded in Firestore:', result);
-        
-        // Show success message
-        toast({
-          title: "Payment recorded",
-          description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded`,
-        });
-        
-        // Refresh Firestore data
-        const updatedSuppliers = await SupplierService.getSuppliers();
-        setFirestoreSuppliers(updatedSuppliers);
-        
-        const updatedTransactions = await TransactionService.getTransactions();
-        setFirestoreTransactions(updatedTransactions);
-      } catch (firestoreError) {
-        console.error('Error recording payment in Firestore:', firestoreError);
-        
-        // If Firestore fails, try API as fallback
-        try {
-          // Call API to record payment as fallback
-          await apiRequest('POST', `/api/suppliers/${supplierId}/payment`, { 
-            amount,
-            description: `Payment to supplier: ${supplierName}`
-          });
-          
-          // API succeeded after Firestore failed
-          toast({
-            title: "Payment recorded",
-            description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded through API`,
-          });
-          
-          // Invalidate queries to refresh API data
-          queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        } catch (apiError) {
-          console.error('API fallback also failed:', apiError);
-          
-          // Show error since both methods failed
-          toast({
-            title: "Payment failed",
-            description: "There was an error recording the payment. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }
     } catch (error) {
       console.error('Payment processing error:', error);
       toast({
@@ -151,8 +107,8 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
     if (firestoreTransactions.length === 0) return null;
     
     const supplierPayments = firestoreTransactions.filter(
-      t => t.entityId === supplierId && t.type === 'payment'
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      (t: any) => t.entityId === supplierId && t.type === 'payment'
+    ).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return supplierPayments.length > 0 ? new Date(supplierPayments[0].date) : null;
   };
@@ -162,64 +118,103 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
     const lastPaymentDate = getLastPaymentDate(supplier.id);
     
     if (lastPaymentDate) {
-      return differenceInDays(new Date(), lastPaymentDate);
+      const diffInTime = new Date().getTime() - lastPaymentDate.getTime();
+      const diffInDays = Math.floor(diffInTime / (1000 * 3600 * 24));
+      return diffInDays;
     }
     
-    // Default if no payment found
-    return '--';
+    return null;
   };
-  
-  // Determine which suppliers data to display
+
+  // Determine which suppliers to display
   const displaySuppliers = firestoreSuppliers.length > 0 ? firestoreSuppliers : suppliers;
-  const isLoading = isFirestoreLoading && suppliers.length === 0;
+  const isPageLoading = isFirestoreLoading && isLoading;
+
+  if (isPageLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Supplier Debts</CardTitle>
+          <CardDescription>Outstanding amounts owed to suppliers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between p-4 border rounded-lg animate-pulse">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  <div className="h-3 bg-gray-200 rounded w-24"></div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-6 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-gray-200 rounded w-20"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const suppliersWithDebt = displaySuppliers.filter((supplier: any) => supplier.debt > 0);
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-        <h3 className="text-lg font-medium leading-6 text-gray-900">Supplier Debts</h3>
-      </div>
-      
-      <div className="divide-y divide-gray-200 max-h-[200px] overflow-y-auto">
-        {isLoading ? (
-          <div className="px-4 py-8 text-center text-gray-500">
-            <i className="fas fa-spinner fa-spin mr-2"></i> Loading supplier data...
-          </div>
-        ) : displaySuppliers.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500">
-            No supplier debts found
-          </div>
-        ) : (
-          displaySuppliers.map(supplier => (
-            <div key={supplier.id} className="px-4 py-3 sm:px-6 flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 mr-3">
-                  <span className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <i className="fas fa-user-tie text-gray-600"></i>
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{supplier.name}</p>
-                  <p className="text-xs text-gray-500">
-                    Last payment: {getPaymentDays(supplier)} {getPaymentDays(supplier) !== '--' ? 'days ago' : ''}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-red-600">₹{supplier.debt ? supplier.debt.toFixed(2) : '0.00'}</p>
-                <button 
-                  onClick={() => openPaymentModal(supplier)}
-                  disabled={isPaying === supplier.id || !supplier.debt || supplier.debt <= 0}
-                  className="mt-1 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isPaying === supplier.id ? 'Processing...' : 'Pay Now'}
-                </button>
-              </div>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Supplier Debts</CardTitle>
+          <CardDescription>Outstanding amounts owed to suppliers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {suppliersWithDebt.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No outstanding debts to suppliers</p>
+          ) : (
+            <div className="space-y-4">
+              {suppliersWithDebt.map((supplier: any) => {
+                const paymentDays = getPaymentDays(supplier);
+                const isUrgent = paymentDays !== null && paymentDays > 30;
+                
+                return (
+                  <div
+                    key={supplier.id}
+                    className={`flex items-center justify-between p-4 border rounded-lg ${
+                      isUrgent ? 'border-red-200 bg-red-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <h4 className="font-medium">{supplier.name}</h4>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        {paymentDays !== null && (
+                          <span className={isUrgent ? 'text-red-600' : ''}>
+                            Last payment: {paymentDays} days ago
+                          </span>
+                        )}
+                        {supplier.contact && (
+                          <span className="text-gray-400">• {supplier.contact}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={isUrgent ? "destructive" : "secondary"}>
+                        ₹{supplier.debt.toFixed(2)}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => openPaymentModal(supplier)}
+                        disabled={isPaying === supplier.id}
+                      >
+                        {isPaying === supplier.id ? "Processing..." : "Pay"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))
-        )}
-      </div>
-      
-      {/* Add the PaymentModal component */}
+          )}
+        </CardContent>
+      </Card>
+
       {selectedSupplier && (
         <PaymentModal
           isOpen={paymentModalOpen}
@@ -230,6 +225,6 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
           currentAmount={selectedSupplier.debt || 0}
         />
       )}
-    </div>
+    </>
   );
 }
