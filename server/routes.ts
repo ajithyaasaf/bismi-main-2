@@ -24,11 +24,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   apiRouter.get("/health", async (req: Request, res: Response) => {
     try {
-      const storage = await getStorage();
-      const status = await storageManager.getStorageStatus();
+      const storage = getStorage();
       res.json({
         status: "healthy",
-        storage: status,
+        storage: "firebase",
         timestamp: new Date().toISOString()
       });
     } catch (error) {
