@@ -1,7 +1,6 @@
 import { IStorage } from './storage';
 import { MemStorage } from './storage';
-import { EnterpriseFirestoreStorage } from './firestore-v2';
-import firebaseManager from './firebase-config';
+import { enterpriseStorage } from './enterprise-storage';
 
 interface StorageConfig {
   primary: IStorage;
@@ -31,40 +30,18 @@ class StorageManager {
     }
 
     try {
-      // Initialize Firebase
-      const firebaseConfig = await firebaseManager.initialize();
+      // Use enterprise storage which handles Firebase gracefully
+      this.currentStorage = enterpriseStorage;
       
-      let primaryStorage: IStorage;
-      let healthChecker: () => Promise<boolean>;
-
-      if (firebaseConfig.db) {
-        // Use Firestore as primary storage
-        primaryStorage = new FirestoreStorage();
-        healthChecker = () => firebaseManager.healthCheck();
-        console.log('Using Firestore as primary storage');
-      } else {
-        // Use in-memory as primary (Firebase unavailable)
-        primaryStorage = new MemStorage();
-        healthChecker = async () => true; // In-memory storage is always available
-        console.log('Using in-memory storage (Firebase unavailable)');
-      }
-
       const fallbackStorage = new MemStorage();
-
+      
       this.config = {
-        primary: primaryStorage,
+        primary: this.currentStorage,
         fallback: fallbackStorage,
-        healthChecker
+        healthChecker: async () => true // Enterprise storage handles its own fallbacks
       };
 
-      // Test primary storage
-      const isHealthy = await this.config.healthChecker();
-      this.currentStorage = isHealthy ? this.config.primary : this.config.fallback;
-
-      // Start health monitoring
-      this.startHealthMonitoring();
-
-      console.log(`Storage initialized: ${this.currentStorage === this.config.primary ? 'Primary' : 'Fallback'}`);
+      console.log(`Enterprise storage initialized: ${enterpriseStorage.getStorageType()}`);
       return this.currentStorage;
 
     } catch (error) {

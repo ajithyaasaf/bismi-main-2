@@ -2,15 +2,15 @@ import admin from 'firebase-admin';
 import { initializeApp as initializeClientApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, Timestamp } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  IStorage,
+import { IStorage } from './storage';
+import { 
   User, InsertUser,
   Supplier, InsertSupplier,
   Inventory, InsertInventory,
   Customer, InsertCustomer,
   Order, InsertOrder,
   Transaction, InsertTransaction
-} from './storage';
+} from "@shared/schema";
 
 export class EnterpriseFirestoreStorage implements IStorage {
   private db: any = null;

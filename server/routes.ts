@@ -26,6 +26,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
   app.use("/api", apiRouter);
 
+  // Health check endpoint
+  apiRouter.get("/health", async (req: Request, res: Response) => {
+    try {
+      const storage = await getStorage();
+      const status = await storageManager.getStorageStatus();
+      res.json({
+        status: "healthy",
+        storage: status,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: "unhealthy",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Supplier routes
   apiRouter.get("/suppliers", async (req: Request, res: Response) => {
     try {
@@ -40,81 +59,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/suppliers/:id", async (req: Request, res: Response) => {
     try {
-      const supplier = await db.getSupplier(req.params.id);
+      const storage = await getStorage();
+      const supplier = await storage.getSupplier(req.params.id);
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
       res.json(supplier);
     } catch (error) {
+      console.error("Failed to fetch supplier:", error);
       res.status(500).json({ message: "Failed to fetch supplier" });
     }
   });
 
   apiRouter.post("/suppliers", async (req: Request, res: Response) => {
     try {
-      const supplierData = insertSupplierSchema.parse(req.body);
-      const supplier = await db.createSupplier(supplierData);
+      const result = insertSupplierSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid supplier data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const supplier = await storage.createSupplier(result.data);
       res.status(201).json(supplier);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid supplier data", errors: error.errors });
-      }
+      console.error("Failed to create supplier:", error);
       res.status(500).json({ message: "Failed to create supplier" });
     }
   });
 
   apiRouter.put("/suppliers/:id", async (req: Request, res: Response) => {
     try {
-      const supplierData = insertSupplierSchema.partial().parse(req.body);
-      const updatedSupplier = await db.updateSupplier(req.params.id, supplierData);
-      if (!updatedSupplier) {
+      const result = insertSupplierSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid supplier data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const supplier = await storage.updateSupplier(req.params.id, result.data);
+      if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
-      res.json(updatedSupplier);
+      res.json(supplier);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid supplier data", errors: error.errors });
-      }
+      console.error("Failed to update supplier:", error);
       res.status(500).json({ message: "Failed to update supplier" });
     }
   });
 
   apiRouter.delete("/suppliers/:id", async (req: Request, res: Response) => {
     try {
-      const success = await db.deleteSupplier(req.params.id);
+      const storage = await getStorage();
+      const success = await storage.deleteSupplier(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Supplier not found" });
       }
-      res.json({ message: "Supplier deleted successfully" });
+      res.status(204).send();
     } catch (error) {
+      console.error("Failed to delete supplier:", error);
       res.status(500).json({ message: "Failed to delete supplier" });
     }
   });
 
+  // Supplier payment route
   apiRouter.post("/suppliers/:id/payment", async (req: Request, res: Response) => {
     try {
       const { amount, description } = req.body;
-      if (typeof amount !== 'number' || amount <= 0) {
+      if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid payment amount" });
       }
 
-      const supplier = await db.getSupplier(req.params.id);
+      const storage = await getStorage();
+      const supplier = await storage.getSupplier(req.params.id);
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
 
-      // Create a payment transaction
-      const transaction = await db.createTransaction({
+      // Create transaction record
+      const transaction = await storage.createTransaction({
+        type: "payment",
+        amount: parseFloat(amount),
         entityId: req.params.id,
-        entityType: 'supplier',
-        amount,
-        date: new Date(),
-        type: 'payment',
-        description: description || `Payment to supplier: ${supplier.name}`
+        entityType: "supplier",
+        description: description || `Payment to supplier: ${supplier.name}`,
+        date: new Date()
       });
+
+      // Update supplier debt
+      const newDebt = (supplier.debt || 0) - parseFloat(amount);
+      await storage.updateSupplier(req.params.id, { debt: Math.max(0, newDebt) });
 
       res.status(201).json(transaction);
     } catch (error) {
+      console.error("Failed to process supplier payment:", error);
       res.status(500).json({ message: "Failed to process payment" });
     }
   });
@@ -122,62 +158,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Inventory routes
   apiRouter.get("/inventory", async (req: Request, res: Response) => {
     try {
-      const inventory = await db.getAllInventory();
+      const storage = await getStorage();
+      const inventory = await storage.getAllInventory();
       res.json(inventory);
     } catch (error) {
+      console.error("Failed to fetch inventory:", error);
       res.status(500).json({ message: "Failed to fetch inventory" });
     }
   });
 
   apiRouter.get("/inventory/:id", async (req: Request, res: Response) => {
     try {
-      const item = await db.getInventoryItem(req.params.id);
+      const storage = await getStorage();
+      const item = await storage.getInventoryItem(req.params.id);
       if (!item) {
         return res.status(404).json({ message: "Inventory item not found" });
       }
       res.json(item);
     } catch (error) {
+      console.error("Failed to fetch inventory item:", error);
       res.status(500).json({ message: "Failed to fetch inventory item" });
     }
   });
 
   apiRouter.post("/inventory", async (req: Request, res: Response) => {
     try {
-      const itemData = insertInventorySchema.parse(req.body);
-      const item = await db.createInventoryItem(itemData);
+      const result = insertInventorySchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid inventory data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const item = await storage.createInventoryItem(result.data);
       res.status(201).json(item);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid inventory data", errors: error.errors });
-      }
+      console.error("Failed to create inventory item:", error);
       res.status(500).json({ message: "Failed to create inventory item" });
     }
   });
 
   apiRouter.put("/inventory/:id", async (req: Request, res: Response) => {
     try {
-      const itemData = insertInventorySchema.partial().parse(req.body);
-      const updatedItem = await db.updateInventoryItem(req.params.id, itemData);
-      if (!updatedItem) {
+      const result = insertInventorySchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid inventory data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const item = await storage.updateInventoryItem(req.params.id, result.data);
+      if (!item) {
         return res.status(404).json({ message: "Inventory item not found" });
       }
-      res.json(updatedItem);
+      res.json(item);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid inventory data", errors: error.errors });
-      }
+      console.error("Failed to update inventory item:", error);
       res.status(500).json({ message: "Failed to update inventory item" });
     }
   });
 
   apiRouter.delete("/inventory/:id", async (req: Request, res: Response) => {
     try {
-      const success = await db.deleteInventoryItem(req.params.id);
+      const storage = await getStorage();
+      const success = await storage.deleteInventoryItem(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Inventory item not found" });
       }
-      res.json({ message: "Inventory item deleted successfully" });
+      res.status(204).send();
     } catch (error) {
+      console.error("Failed to delete inventory item:", error);
       res.status(500).json({ message: "Failed to delete inventory item" });
     }
   });
@@ -185,114 +233,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer routes
   apiRouter.get("/customers", async (req: Request, res: Response) => {
     try {
-      const customers = await db.getAllCustomers();
+      const storage = await getStorage();
+      const customers = await storage.getAllCustomers();
       res.json(customers);
     } catch (error) {
+      console.error("Failed to fetch customers:", error);
       res.status(500).json({ message: "Failed to fetch customers" });
     }
   });
 
   apiRouter.get("/customers/:id", async (req: Request, res: Response) => {
     try {
-      const customer = await db.getCustomer(req.params.id);
+      const storage = await getStorage();
+      const customer = await storage.getCustomer(req.params.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
       res.json(customer);
     } catch (error) {
+      console.error("Failed to fetch customer:", error);
       res.status(500).json({ message: "Failed to fetch customer" });
     }
   });
 
   apiRouter.post("/customers", async (req: Request, res: Response) => {
     try {
-      const customerData = insertCustomerSchema.parse(req.body);
+      const result = insertCustomerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid customer data", errors: result.error.errors });
+      }
       
-      // Use the getStorage function for better fallback behavior
-      const storage = getStorage();
-      
-      // For debugging - log the storage type and customer data
-      console.log(`Creating customer using ${useFirestore ? 'Firestore' : 'in-memory'} storage`);
-      console.log('Customer data:', customerData);
-      
-      const customer = await storage.createCustomer(customerData);
-      console.log('Customer created:', customer);
-      
+      const storage = await getStorage();
+      const customer = await storage.createCustomer(result.data);
       res.status(201).json(customer);
     } catch (error) {
-      console.error("Error creating customer:", error);
-      
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid customer data", errors: error.errors });
-      }
-      
-      // Try fallback to in-memory storage if Firestore fails
-      if (useFirestore) {
-        try {
-          console.log("Firestore failed, falling back to in-memory storage");
-          const customer = await storage.createCustomer(req.body);
-          return res.status(201).json(customer);
-        } catch (fallbackError) {
-          console.error("Fallback also failed:", fallbackError);
-        }
-      }
-      
+      console.error("Failed to create customer:", error);
       res.status(500).json({ message: "Failed to create customer" });
     }
   });
 
   apiRouter.put("/customers/:id", async (req: Request, res: Response) => {
     try {
-      const customerData = insertCustomerSchema.partial().parse(req.body);
-      const updatedCustomer = await db.updateCustomer(req.params.id, customerData);
-      if (!updatedCustomer) {
+      const result = insertCustomerSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid customer data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const customer = await storage.updateCustomer(req.params.id, result.data);
+      if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
-      res.json(updatedCustomer);
+      res.json(customer);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid customer data", errors: error.errors });
-      }
+      console.error("Failed to update customer:", error);
       res.status(500).json({ message: "Failed to update customer" });
     }
   });
 
   apiRouter.delete("/customers/:id", async (req: Request, res: Response) => {
     try {
-      const success = await db.deleteCustomer(req.params.id);
+      const storage = await getStorage();
+      const success = await storage.deleteCustomer(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Customer not found" });
       }
-      res.json({ message: "Customer deleted successfully" });
+      res.status(204).send();
     } catch (error) {
+      console.error("Failed to delete customer:", error);
       res.status(500).json({ message: "Failed to delete customer" });
     }
   });
 
+  // Customer payment route
   apiRouter.post("/customers/:id/payment", async (req: Request, res: Response) => {
     try {
       const { amount, description } = req.body;
-      if (typeof amount !== 'number' || amount <= 0) {
+      if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid payment amount" });
       }
 
-      const customer = await db.getCustomer(req.params.id);
+      const storage = await getStorage();
+      const customer = await storage.getCustomer(req.params.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
 
-      // Create a receipt transaction
-      const transaction = await db.createTransaction({
+      // Create transaction record
+      const transaction = await storage.createTransaction({
+        type: "receipt",
+        amount: parseFloat(amount),
         entityId: req.params.id,
-        entityType: 'customer',
-        amount,
-        date: new Date(),
-        type: 'receipt',
-        description: description || `Payment from customer: ${customer.name}`
+        entityType: "customer",
+        description: description || `Payment from customer: ${customer.name}`,
+        date: new Date()
       });
+
+      // Update customer pending amount
+      const newPending = (customer.pendingAmount || 0) - parseFloat(amount);
+      await storage.updateCustomer(req.params.id, { pendingAmount: Math.max(0, newPending) });
 
       res.status(201).json(transaction);
     } catch (error) {
+      console.error("Failed to process customer payment:", error);
       res.status(500).json({ message: "Failed to process payment" });
     }
   });
@@ -300,93 +343,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Order routes
   apiRouter.get("/orders", async (req: Request, res: Response) => {
     try {
-      const customerId = req.query.customerId as string;
-      let orders;
-      
-      if (customerId) {
-        orders = await db.getOrdersByCustomer(customerId);
-      } else {
-        orders = await db.getAllOrders();
-      }
-      
+      const storage = await getStorage();
+      const orders = await storage.getAllOrders();
       res.json(orders);
     } catch (error) {
+      console.error("Failed to fetch orders:", error);
       res.status(500).json({ message: "Failed to fetch orders" });
     }
   });
 
   apiRouter.get("/orders/:id", async (req: Request, res: Response) => {
     try {
-      const order = await db.getOrder(req.params.id);
+      const storage = await getStorage();
+      const order = await storage.getOrder(req.params.id);
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
       res.json(order);
     } catch (error) {
+      console.error("Failed to fetch order:", error);
       res.status(500).json({ message: "Failed to fetch order" });
     }
   });
 
   apiRouter.post("/orders", async (req: Request, res: Response) => {
     try {
-      const orderData = insertOrderSchema.parse(req.body);
-      
-      // Verify customer exists
-      const customer = await db.getCustomer(orderData.customerId);
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
+      const result = insertOrderSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid order data", errors: result.error.errors });
       }
       
-      // Verify inventory has enough stock
-      for (const item of orderData.items) {
-        const inventoryItems = await db.getAllInventory();
-        const inventoryItem = inventoryItems.find(inv => inv.type === item.type);
-        
-        if (!inventoryItem) {
-          return res.status(404).json({ message: `Inventory item not found: ${item.type}` });
-        }
-        
-        if (inventoryItem.quantity < item.quantity) {
-          return res.status(400).json({ 
-            message: `Not enough stock for ${item.type}. Available: ${inventoryItem.quantity}kg, Requested: ${item.quantity}kg` 
-          });
-        }
-      }
-      
-      const order = await db.createOrder(orderData);
+      const storage = await getStorage();
+      const order = await storage.createOrder(result.data);
       res.status(201).json(order);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid order data", errors: error.errors });
-      }
+      console.error("Failed to create order:", error);
       res.status(500).json({ message: "Failed to create order" });
     }
   });
 
   apiRouter.put("/orders/:id", async (req: Request, res: Response) => {
     try {
-      const orderData = insertOrderSchema.partial().parse(req.body);
-      const updatedOrder = await db.updateOrder(req.params.id, orderData);
-      if (!updatedOrder) {
+      const result = insertOrderSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid order data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const order = await storage.updateOrder(req.params.id, result.data);
+      if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
-      res.json(updatedOrder);
+      res.json(order);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid order data", errors: error.errors });
-      }
+      console.error("Failed to update order:", error);
       res.status(500).json({ message: "Failed to update order" });
     }
   });
 
   apiRouter.delete("/orders/:id", async (req: Request, res: Response) => {
     try {
-      const success = await db.deleteOrder(req.params.id);
+      const storage = await getStorage();
+      const success = await storage.deleteOrder(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Order not found" });
       }
-      res.json({ message: "Order deleted successfully" });
+      res.status(204).send();
     } catch (error) {
+      console.error("Failed to delete order:", error);
       res.status(500).json({ message: "Failed to delete order" });
     }
   });
@@ -394,42 +418,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Transaction routes
   apiRouter.get("/transactions", async (req: Request, res: Response) => {
     try {
-      const entityId = req.query.entityId as string;
-      let transactions;
-      
-      if (entityId) {
-        transactions = await db.getTransactionsByEntity(entityId);
-      } else {
-        transactions = await db.getAllTransactions();
-      }
-      
+      const storage = await getStorage();
+      const transactions = await storage.getAllTransactions();
       res.json(transactions);
     } catch (error) {
+      console.error("Failed to fetch transactions:", error);
       res.status(500).json({ message: "Failed to fetch transactions" });
     }
   });
 
   apiRouter.get("/transactions/:id", async (req: Request, res: Response) => {
     try {
-      const transaction = await db.getTransaction(req.params.id);
+      const storage = await getStorage();
+      const transaction = await storage.getTransaction(req.params.id);
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
       }
       res.json(transaction);
     } catch (error) {
+      console.error("Failed to fetch transaction:", error);
       res.status(500).json({ message: "Failed to fetch transaction" });
     }
   });
 
   apiRouter.post("/transactions", async (req: Request, res: Response) => {
     try {
-      const transactionData = insertTransactionSchema.parse(req.body);
-      const transaction = await db.createTransaction(transactionData);
+      const result = insertTransactionSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid transaction data", errors: result.error.errors });
+      }
+      
+      const storage = await getStorage();
+      const transaction = await storage.createTransaction(result.data);
       res.status(201).json(transaction);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid transaction data", errors: error.errors });
-      }
+      console.error("Failed to create transaction:", error);
       res.status(500).json({ message: "Failed to create transaction" });
     }
   });
@@ -437,54 +460,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reports route
   apiRouter.get("/reports", async (req: Request, res: Response) => {
     try {
-      const reportType = req.query.type as string;
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
-      
-      let report: any = {};
-      
-      switch (reportType) {
-        case 'sales':
-          // Get all orders within date range
-          const orders = await db.getAllOrders();
-          const filteredOrders = orders.filter(order => {
-            // Skip orders with null dates or handle them as needed
-            if (!order.date) return false;
-            const orderDate = new Date(order.date);
-            return (!startDate || orderDate >= startDate) && 
-                  (!endDate || orderDate <= endDate);
-          });
-          
-          report = {
-            totalSales: filteredOrders.reduce((sum, order) => sum + order.total, 0),
-            orderCount: filteredOrders.length,
-            orders: filteredOrders
-          };
-          break;
-          
-        case 'debts':
-          // Get all suppliers and customers with debts
-          const suppliers = await db.getAllSuppliers();
-          const customers = await db.getAllCustomers();
-          
-          report = {
-            totalSupplierDebt: suppliers.reduce((sum, supplier) => sum + supplier.debt, 0),
-            totalCustomerPending: customers.reduce((sum, customer) => sum + customer.pendingAmount, 0),
-            suppliers: suppliers.filter(supplier => supplier.debt > 0),
-            customers: customers.filter(customer => customer.pendingAmount > 0)
-          };
-          break;
-          
-        default:
-          return res.status(400).json({ message: "Invalid report type" });
-      }
-      
+      const storage = await getStorage();
+      const [orders, suppliers, customers, inventory, transactions] = await Promise.all([
+        storage.getAllOrders(),
+        storage.getAllSuppliers(),
+        storage.getAllCustomers(),
+        storage.getAllInventory(),
+        storage.getAllTransactions()
+      ]);
+
+      // Calculate metrics
+      const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+      const totalSupplierDebt = suppliers.reduce((sum, supplier) => sum + (supplier.debt || 0), 0);
+      const totalCustomerPending = customers.reduce((sum, customer) => sum + (customer.pendingAmount || 0), 0);
+      const lowStockItems = inventory.filter(item => item.quantity < 10);
+
+      const report = {
+        summary: {
+          totalRevenue,
+          totalSupplierDebt,
+          totalCustomerPending,
+          lowStockCount: lowStockItems.length,
+          totalOrders: orders.length,
+          totalSuppliers: suppliers.length,
+          totalCustomers: customers.length,
+          totalInventoryItems: inventory.length
+        },
+        lowStockItems,
+        recentTransactions: transactions
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 10)
+      };
+
       res.json(report);
     } catch (error) {
-      res.status(500).json({ message: "Failed to generate report" });
+      console.error("Failed to generate reports:", error);
+      res.status(500).json({ message: "Failed to generate reports" });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  const server = createServer(app);
+  return server;
 }
