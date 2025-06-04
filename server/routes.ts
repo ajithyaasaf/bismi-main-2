@@ -1,7 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { firestoreStorage } from "./firestore-storage"; // Import Firestore storage
+import storageManager from "./storage-manager";
 import { v4 as uuidv4 } from 'uuid';
 import { 
   insertSupplierSchema, 
@@ -12,20 +11,14 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Use Firestore storage if environment variable is set and no initialization failure
-const useFirestore = process.env.USE_FIRESTORE === "true" && !(global as any).FIRESTORE_FAILED;
-const db = useFirestore ? firestoreStorage : storage;
+// Enterprise-level storage manager initialization
+let storageInstance: any = null;
 
-console.log(`Using ${useFirestore ? 'Firestore' : 'in-memory'} storage...`);
-
-// Function to check and get proper storage instance at runtime
-// This provides an additional fallback in case Firestore fails during operation
-function getStorage() {
-  // If Firestore was marked as failed globally, always use in-memory storage
-  if ((global as any).FIRESTORE_FAILED) {
-    return storage;
+async function getStorage() {
+  if (!storageInstance) {
+    storageInstance = await storageManager.initialize();
   }
-  return db;
+  return storageInstance;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -36,7 +29,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Supplier routes
   apiRouter.get("/suppliers", async (req: Request, res: Response) => {
     try {
-      const suppliers = await db.getAllSuppliers();
+      const storage = await getStorage();
+      const suppliers = await storage.getAllSuppliers();
       res.json(suppliers);
     } catch (error) {
       console.error("Failed to fetch suppliers:", error);
