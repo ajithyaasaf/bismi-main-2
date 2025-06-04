@@ -156,10 +156,10 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
         const quantity = parseFloat(item.quantity);
         const rate = parseFloat(item.rate);
         
-        if (isNaN(quantity) || quantity <= 0) {
+        if (isNaN(quantity) || quantity === 0) {
           toast({
             title: "Invalid quantity",
-            description: `Please enter a valid quantity for ${item.type}`,
+            description: `Please enter a non-zero quantity for ${item.type}`,
             variant: "destructive"
           });
           hasError = true;
@@ -176,20 +176,29 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
           break;
         }
         
-        // Check inventory has enough stock
+        // Find inventory item for this type
         const inventoryItem = inventory.find(i => i.type === item.type);
-        if (!inventoryItem || inventoryItem.quantity < quantity) {
+        
+        // Show low stock warning but allow order to proceed (enterprise mode)
+        if (inventoryItem && inventoryItem.quantity < quantity) {
           toast({
-            title: "Insufficient stock",
-            description: `Not enough ${item.type} in inventory. Available: ${inventoryItem?.quantity || 0}kg`,
-            variant: "destructive"
+            title: "Low stock notice",
+            description: `Stock will go below available inventory. Available: ${inventoryItem.quantity}kg, Ordered: ${quantity}kg`,
+            variant: "default" // Changed from destructive to default (informational)
           });
-          hasError = true;
-          break;
+        }
+        
+        // If no inventory item exists, we'll create the order anyway but note it
+        if (!inventoryItem) {
+          toast({
+            title: "No inventory record",
+            description: `No inventory found for ${item.type}. Order will proceed but inventory will need manual adjustment.`,
+            variant: "default"
+          });
         }
         
         validItems.push({
-          itemId: inventoryItem.id,
+          itemId: inventoryItem?.id || '', // Allow empty itemId if no inventory exists
           type: item.type,
           quantity,
           rate,
