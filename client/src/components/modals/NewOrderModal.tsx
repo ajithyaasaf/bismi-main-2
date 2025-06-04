@@ -193,24 +193,33 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
           break;
         }
         
-        // Check inventory has enough stock
+        // Find inventory item for this type
         const inventoryItem = inventory.find(i => i.type === item.type);
-        if (!inventoryItem || inventoryItem.quantity < quantity) {
+        
+        // Show low stock warning but allow order to proceed (enterprise mode)
+        if (inventoryItem && inventoryItem.quantity < quantity) {
           toast({
-            title: "Insufficient stock",
-            description: `Not enough ${item.type} in inventory. Available: ${inventoryItem?.quantity || 0}kg`,
-            variant: "destructive"
+            title: "Low stock notice",
+            description: `Stock will go below available inventory. Available: ${inventoryItem.quantity}kg, Ordered: ${quantity}kg`,
+            variant: "default" // Changed from destructive to default (informational)
           });
-          hasError = true;
-          break;
+        }
+        
+        // If no inventory item exists, we'll create the order anyway but note it
+        if (!inventoryItem) {
+          toast({
+            title: "No inventory record",
+            description: `No inventory found for ${item.type}. Order will proceed but inventory will need manual adjustment.`,
+            variant: "default"
+          });
         }
         
         validItems.push({
-          itemId: inventoryItem.id,
+          itemId: inventoryItem?.id || '', // Allow empty itemId if no inventory exists
           type: item.type,
           quantity,
           rate,
-          details: item.details || '' // Include the details field in order items
+          details: item.details || ''
         });
       }
       
@@ -238,18 +247,26 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       
       console.log('New order created:', newOrder);
       
-      // Update inventory based on order items
-      console.log('Updating inventory based on order items');
+      // Update inventory based on order items (Enterprise mode - allows negative stock)
+      console.log('Updating inventory based on order items (Enterprise mode)');
       
       for (const item of validItems) {
         const inventoryItem = inventory.find(i => i.type === item.type);
-        if (inventoryItem) {
+        if (inventoryItem && inventoryItem.id) {
           const newQuantity = inventoryItem.quantity - item.quantity;
-          console.log(`Updating ${item.type} inventory from ${inventoryItem.quantity} to ${newQuantity}`);
+          console.log(`Updating ${item.type} inventory from ${inventoryItem.quantity} to ${newQuantity} (negative allowed)`);
           
           await InventoryService.updateInventoryItem(inventoryItem.id, {
-            quantity: newQuantity
+            quantity: newQuantity // Allow negative quantities for enterprise operations
           });
+          
+          // Log if inventory goes negative for tracking purposes
+          if (newQuantity < 0) {
+            console.log(`⚠️ ${item.type} inventory is now negative: ${newQuantity}kg - Enterprise mode allows this`);
+          }
+        } else if (!inventoryItem) {
+          // If no inventory item exists for this type, log it for manual handling
+          console.log(`⚠️ No inventory record found for ${item.type} - Manual inventory adjustment may be needed`);
         }
       }
       

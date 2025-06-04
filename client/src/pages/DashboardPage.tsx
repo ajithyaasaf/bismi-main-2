@@ -108,8 +108,9 @@ export default function DashboardPage() {
   
   const todaysSales = todaysOrders.reduce((sum, order) => sum + order.total, 0);
   
-  // Low stock items (less than 5kg)
-  const lowStockItems = effectiveInventory.filter(item => item.quantity < 5);
+  // Enterprise stock monitoring: Show negative stock and low stock items
+  const lowStockItems = effectiveInventory.filter(item => item.quantity < 5)
+    .sort((a, b) => a.quantity - b.quantity); // Sort by quantity (negative first, then lowest positive)
   
   // Recent orders (last 5)
   const recentOrders = [...effectiveOrders]
