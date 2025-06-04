@@ -1,6 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import storageManager from "./storage-manager";
+import { firebaseStorage } from "./firebase-storage";
 import { v4 as uuidv4 } from 'uuid';
 import { 
   insertSupplierSchema, 
@@ -11,14 +11,9 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Enterprise-level storage manager initialization
-let storageInstance: any = null;
-
-async function getStorage() {
-  if (!storageInstance) {
-    storageInstance = await storageManager.initialize();
-  }
-  return storageInstance;
+// Direct Firebase storage usage
+function getStorage() {
+  return firebaseStorage;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
