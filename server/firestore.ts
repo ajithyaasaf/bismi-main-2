@@ -1,8 +1,6 @@
-import { initializeApp as initializeAdminApp, cert, getApps, App } from 'firebase-admin/app';
-import { getFirestore as getAdminFirestore, Timestamp, FieldValue, Firestore as AdminFirestore } from 'firebase-admin/firestore';
-import * as firebase from 'firebase/app';
-import { FirebaseApp } from 'firebase/app';
-import { getFirestore as getClientFirestore, Firestore as ClientFirestore } from 'firebase/firestore';
+import admin from 'firebase-admin';
+import { initializeApp as initializeClientApp, getApps as getClientApps } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
 // Create a type that can represent either admin or client Firestore
@@ -12,9 +10,9 @@ type FirestoreDB = AdminFirestore | ClientFirestore;
 const initializeFirebase = () => {
   try {
     // First, try to initialize Firebase Admin SDK
-    if (getApps().length === 0) {
+    if (admin.apps.length === 0) {
       // For Vercel deployment - simplified initialization
-      const adminApp = initializeAdminApp({
+      const adminApp = admin.initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'bismi-broilers-3ca96',
       });
       
@@ -26,7 +24,7 @@ const initializeFirebase = () => {
     } else {
       console.log('Firebase Admin SDK already initialized');
       return {
-        app: getApps()[0],
+        app: admin.apps[0],
         isAdmin: true
       };
     }
@@ -78,7 +76,7 @@ const { app, isAdmin } = initializeFirebase();
 let db: FirestoreDB | null = null;
 if (app) {
   if (isAdmin) {
-    db = getAdminFirestore(app as App);
+    db = admin.firestore();
   } else {
     db = getClientFirestore(app as FirebaseApp);
   }
