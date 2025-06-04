@@ -36,7 +36,11 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
     { value: 'leg-piece', label: 'Leg Piece' },
     { value: 'goat', label: 'Goat' },
     { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' }
+    { value: 'beef', label: 'Beef' },
+    { value: 'kodal', label: 'Kodal' },
+    { value: 'chops', label: 'Chops' },
+    { value: 'boneless', label: 'Boneless' },
+    { value: 'order', label: 'Order' }
   ];
   
   // Calculate total when quantity or rate changes

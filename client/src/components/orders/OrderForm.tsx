@@ -41,12 +41,19 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Item types from inventory
-  const itemTypes = inventory.map(item => ({
-    value: item.type,
-    label: item.type.charAt(0).toUpperCase() + item.type.slice(1).replace('-', ' '),
-    rate: item.rate
-  }));
+  // Item types - consistent with all other components
+  const itemTypes = [
+    { value: 'chicken', label: 'Chicken' },
+    { value: 'eeral', label: 'Eeral' },
+    { value: 'leg-piece', label: 'Leg Piece' },
+    { value: 'goat', label: 'Goat' },
+    { value: 'kadai', label: 'Kadai' },
+    { value: 'beef', label: 'Beef' },
+    { value: 'kodal', label: 'Kodal' },
+    { value: 'chops', label: 'Chops' },
+    { value: 'boneless', label: 'Boneless' },
+    { value: 'order', label: 'Order' }
+  ];
   
   // Hotels (filtered customers)
   const hotels = customers.filter(c => c.type === 'hotel');
@@ -66,9 +73,9 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
       ...items,
       { 
         id: String(items.length + 1), 
-        type: itemTypes.length > 0 ? itemTypes[0].value : 'chicken', 
+        type: 'chicken', 
         quantity: '', 
-        rate: itemTypes.length > 0 ? String(itemTypes[0].rate) : '',
+        rate: '',
         details: ''
       }
     ]);

@@ -34,7 +34,11 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
     { value: 'leg-piece', label: 'Leg Piece' },
     { value: 'goat', label: 'Goat' },
     { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' }
+    { value: 'beef', label: 'Beef' },
+    { value: 'kodal', label: 'Kodal' },
+    { value: 'chops', label: 'Chops' },
+    { value: 'boneless', label: 'Boneless' },
+    { value: 'order', label: 'Order' }
   ];
   
   const handleSubmit = async () => {
