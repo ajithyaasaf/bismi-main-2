@@ -60,61 +60,32 @@ export default function CustomerForm({ customer, isOpen, onClose }: CustomerForm
         pendingAmount: pendingValue,
       };
       
-      console.log("Saving customer data directly to Firestore:", customerData);
-      
       if (isEditing && customer) {
-        // First try the API for consistency with the rest of the app
-        try {
-          await apiRequest('PUT', `/api/customers/${customer.id}`, customerData);
-          console.log("Customer updated via API");
-        } catch (apiError) {
-          console.log("API update failed, using direct Firestore update", apiError);
-          // Fallback: Update directly in Firestore
-          const result = await CustomerService.updateCustomer(customer.id, customerData);
-          console.log("Customer updated directly in Firestore:", result);
-        }
+        // Update via API only - single source of truth
+        await apiRequest('PUT', `/api/customers/${customer.id}`, customerData);
         
         toast({
           title: "Customer updated",
           description: `${name} has been updated successfully`,
         });
       } else {
-        // Always add to Firestore directly for new customers
-        try {
-          // Directly add to Firestore for most reliable operation
-          const result = await CustomerService.addCustomer(customerData);
-          console.log("Customer added to Firestore:", result);
-          
-          // Also try the API to keep the server data in sync (but don't fail if it errors)
-          try {
-            await apiRequest('POST', '/api/customers', customerData);
-            console.log("Customer also saved via API");
-          } catch (apiError) {
-            console.log("API creation failed, but Firestore update succeeded", apiError);
-          }
-          
-          toast({
-            title: "Customer added",
-            description: `${name} has been added successfully`,
-          });
-        } catch (firestoreError) {
-          console.error("Firestore save failed, trying API as fallback", firestoreError);
-          
-          // Firestore failed, try API as fallback
-          await apiRequest('POST', '/api/customers', customerData);
-          console.log("Customer saved via API fallback");
-          
-          toast({
-            title: "Customer added",
-            description: `${name} has been added successfully (via server)`,
-          });
-        }
+        // Create via API only - single source of truth
+        await apiRequest('POST', '/api/customers', customerData);
+        
+        toast({
+          title: "Customer added",
+          description: `${name} has been added successfully`,
+        });
       }
       
       // Refresh customers data
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       
-      // Close modal
+      // Close modal and reset form
+      setName("");
+      setType("hotel");
+      setContact("");
+      setPendingAmount("0");
       onClose();
     } catch (error) {
       console.error("Failed to save customer:", error);

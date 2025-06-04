@@ -58,15 +58,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
       };
       
       if (isEditing && supplier) {
-        // First update directly in Firestore
-        try {
-          await SupplierService.updateSupplier(supplier.id, supplierData);
-          console.log("Supplier updated in Firestore successfully");
-        } catch (firestoreError) {
-          console.error("Error updating supplier in Firestore:", firestoreError);
-        }
-        
-        // Then update via API for backward compatibility
+        // Update via API only - single source of truth
         await apiRequest('PUT', `/api/suppliers/${supplier.id}`, supplierData);
         
         toast({
@@ -74,15 +66,7 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
           description: `${name} has been updated successfully`,
         });
       } else {
-        // First create directly in Firestore
-        try {
-          const newSupplier = await SupplierService.addSupplier(supplierData);
-          console.log("Supplier added to Firestore successfully:", newSupplier);
-        } catch (firestoreError) {
-          console.error("Error adding supplier to Firestore:", firestoreError);
-        }
-        
-        // Then create via API for backward compatibility
+        // Create via API only - single source of truth
         await apiRequest('POST', '/api/suppliers', supplierData);
         
         toast({
@@ -94,7 +78,10 @@ export default function SupplierForm({ supplier, isOpen, onClose }: SupplierForm
       // Refresh suppliers data
       queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
       
-      // Close modal
+      // Close modal and reset form
+      setName("");
+      setContact("");
+      setDebt("0");
       onClose();
     } catch (error) {
       console.error("Error in supplier form submission:", error);

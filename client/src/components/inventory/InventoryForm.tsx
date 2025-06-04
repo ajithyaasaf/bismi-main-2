@@ -73,15 +73,7 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
       };
       
       if (isEditing && item) {
-        // First update directly in Firestore
-        try {
-          await InventoryService.updateInventoryItem(item.id, itemData);
-          console.log("Inventory item updated in Firestore successfully");
-        } catch (firestoreError) {
-          console.error("Error updating inventory item in Firestore:", firestoreError);
-        }
-        
-        // Then update via API for backward compatibility
+        // Update via API only - single source of truth
         await apiRequest('PUT', `/api/inventory/${item.id}`, itemData);
         
         toast({
@@ -89,15 +81,7 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
           description: `${type} has been updated successfully`,
         });
       } else {
-        // First create directly in Firestore
-        try {
-          const newItem = await InventoryService.addInventoryItem(itemData);
-          console.log("Inventory item added to Firestore successfully:", newItem);
-        } catch (firestoreError) {
-          console.error("Error adding inventory item to Firestore:", firestoreError);
-        }
-        
-        // Then create via API for backward compatibility
+        // Create via API only - single source of truth
         await apiRequest('POST', '/api/inventory', itemData);
         
         toast({
@@ -109,7 +93,10 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
       // Refresh inventory data
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       
-      // Close modal
+      // Close modal and reset form
+      setType(ITEM_TYPES[0]);
+      setQuantity("");
+      setRate("");
       onClose();
     } catch (error) {
       console.error("Error in inventory form submission:", error);

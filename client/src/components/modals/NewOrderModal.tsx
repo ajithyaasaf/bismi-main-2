@@ -231,44 +231,15 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       // Calculate total
       const total = calculateTotal();
       
-      // Create order using Firestore service directly
-      console.log('Creating order in Firestore with selected date');
-      // Parse the ISO date string to create a Date object
-      const orderDateObj = orderDate ? parseISO(orderDate) : new Date();
-      
-      const newOrder = await OrderService.addOrder({
+      // Create order via API only - single source of truth
+      await apiRequest('POST', '/api/orders', {
         customerId: orderCustomerId,
         items: validItems,
-        date: orderDateObj,
+        date: new Date(orderDate).toISOString(),
         total,
         status: paymentStatus,
         type: customerType
       });
-      
-      console.log('New order created:', newOrder);
-      
-      // Update inventory based on order items (Enterprise mode - allows negative stock)
-      console.log('Updating inventory based on order items (Enterprise mode)');
-      
-      for (const item of validItems) {
-        const inventoryItem = inventory.find(i => i.type === item.type);
-        if (inventoryItem && inventoryItem.id) {
-          const newQuantity = inventoryItem.quantity - item.quantity;
-          console.log(`Updating ${item.type} inventory from ${inventoryItem.quantity} to ${newQuantity} (negative allowed)`);
-          
-          await InventoryService.updateInventoryItem(inventoryItem.id, {
-            quantity: newQuantity // Allow negative quantities for enterprise operations
-          });
-          
-          // Log if inventory goes negative for tracking purposes
-          if (newQuantity < 0) {
-            console.log(`⚠️ ${item.type} inventory is now negative: ${newQuantity}kg - Enterprise mode allows this`);
-          }
-        } else if (!inventoryItem) {
-          // If no inventory item exists for this type, log it for manual handling
-          console.log(`⚠️ No inventory record found for ${item.type} - Manual inventory adjustment may be needed`);
-        }
-      }
       
       // If the order payment is pending, update customer pending amount
       if (paymentStatus === 'pending') {
