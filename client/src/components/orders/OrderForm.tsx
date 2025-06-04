@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Customer, Inventory } from "@shared/schema";
+import { ITEM_TYPES, CUSTOMER_TYPES, PAYMENT_STATUS } from "@shared/constants";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -41,19 +42,8 @@ export default function OrderForm({ customers, inventory, isOpen, onClose }: Ord
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Item types - consistent with all other components
-  const itemTypes = [
-    { value: 'chicken', label: 'Chicken' },
-    { value: 'eeral', label: 'Eeral' },
-    { value: 'leg-piece', label: 'Leg Piece' },
-    { value: 'goat', label: 'Goat' },
-    { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' },
-    { value: 'kodal', label: 'Kodal' },
-    { value: 'chops', label: 'Chops' },
-    { value: 'boneless', label: 'Boneless' },
-    { value: 'order', label: 'Order' }
-  ];
+  // Item types from centralized constants
+  const itemTypes = ITEM_TYPES;
   
   // Hotels (filtered customers)
   const hotels = customers.filter(c => c.type === 'hotel');

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '@shared/schema';
+import { ITEM_TYPES } from '@shared/constants';
 import { apiRequest } from '@/lib/queryClient';
 import * as InventoryService from '@/lib/inventory-service';
 import * as SupplierService from '@/lib/supplier-service';
@@ -29,19 +30,8 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Item types
-  const itemTypes = [
-    { value: 'chicken', label: 'Chicken' },
-    { value: 'eeral', label: 'Eeral' },
-    { value: 'leg-piece', label: 'Leg Piece' },
-    { value: 'goat', label: 'Goat' },
-    { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' },
-    { value: 'kodal', label: 'Kodal' },
-    { value: 'chops', label: 'Chops' },
-    { value: 'boneless', label: 'Boneless' },
-    { value: 'order', label: 'Order' }
-  ];
+  // Item types from centralized constants
+  const itemTypes = ITEM_TYPES;
   
   // Calculate total when quantity or rate changes
   useEffect(() => {
@@ -114,7 +104,7 @@ export default function AddStockModal({ isOpen, onClose, suppliers }: AddStockMo
       
       // 2. Update or add inventory in Firestore
       let inventoryResult;
-      if (existingItem) {
+      if (existingItem && existingItem.id && typeof existingItem.quantity === 'number') {
         // Update existing inventory in Firestore
         console.log(`Updating existing inventory item: ${existingItem.id}`);
         inventoryResult = await InventoryService.updateInventoryItem(existingItem.id, {

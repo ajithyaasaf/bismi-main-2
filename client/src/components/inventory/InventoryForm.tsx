@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Inventory } from "@shared/schema";
+import { ITEM_TYPES } from "@shared/constants";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -27,19 +28,8 @@ export default function InventoryForm({ item, isOpen, onClose }: InventoryFormPr
   
   const isEditing = Boolean(item);
   
-  // Item types
-  const itemTypes = [
-    { value: 'chicken', label: 'Chicken' },
-    { value: 'eeral', label: 'Eeral' },
-    { value: 'leg-piece', label: 'Leg Piece' },
-    { value: 'goat', label: 'Goat' },
-    { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' },
-    { value: 'kodal', label: 'Kodal' },
-    { value: 'chops', label: 'Chops' },
-    { value: 'boneless', label: 'Boneless' },
-    { value: 'order', label: 'Order' }
-  ];
+  // Item types from centralized constants
+  const itemTypes = ITEM_TYPES;
   
   const handleSubmit = async () => {
     // Validate

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { Customer, Inventory, OrderItem } from '@shared/schema';
+import { ITEM_TYPES, CUSTOMER_TYPES, PAYMENT_STATUS } from '@shared/constants';
 import { format, parseISO } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import { Separator } from "@/components/ui/separator";
@@ -40,19 +41,8 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Item types
-  const itemTypes = [
-    { value: 'chicken', label: 'Chicken' },
-    { value: 'eeral', label: 'Eeral' },
-    { value: 'leg-piece', label: 'Leg Piece' },
-    { value: 'goat', label: 'Goat' },
-    { value: 'kadai', label: 'Kadai' },
-    { value: 'beef', label: 'Beef' },
-    { value: 'kodal', label: 'Kodal' },
-    { value: 'chops', label: 'Chops' },
-    { value: 'boneless', label: 'Boneless' },
-    { value: 'order', label: 'Order' }
-  ];
+  // Item types from centralized constants
+  const itemTypes = ITEM_TYPES;
   
   // Hotels (filtered customers)
   const hotels = customers.filter(c => c.type === 'hotel');
