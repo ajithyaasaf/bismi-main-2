@@ -67,8 +67,20 @@ export default function SupplierDebts({ suppliers }: SupplierDebtsProps) {
       
       console.log(`Processing payment of ${amount} for supplier ${supplierId}`);
       
-      // First, try to use Firestore service directly
-      try {
+      // Use API only - single source of truth
+      await apiRequest('POST', `/api/suppliers/${supplierId}/payment`, { 
+        amount,
+        description: `Payment to supplier: ${supplierName}`
+      });
+      
+      toast({
+        title: "Payment recorded",
+        description: `Payment of ₹${amount.toFixed(2)} to ${supplierName} has been recorded`,
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
         // Record payment using Firestore service
         const result = await SupplierService.recordSupplierPayment(
           supplierId, 

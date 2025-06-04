@@ -112,59 +112,18 @@ export default function SuppliersPage() {
     try {
       console.log(`Processing payment for supplier ${supplierForPayment.id} (${supplierForPayment.name}): ${amount}`);
       
-      // First try to use the recordSupplierPayment function that handles both 
-      // the transaction creation and debt update in a single call
-      try {
-        const result = await SupplierService.recordSupplierPayment(
-          supplierForPayment.id,
-          amount,
-          `Payment to supplier: ${supplierForPayment.name}`
-        );
-        
-        console.log("Payment recorded in Firestore successfully:", result);
-        
-        // Show success immediately since Firestore operation succeeded
-        toast({
-          title: "Payment recorded",
-          description: `Payment of ₹${amount.toFixed(2)} to ${supplierForPayment.name} has been recorded`,
-        });
-      } catch (firestoreError) {
-        console.error("Error recording payment in Firestore:", firestoreError);
-        
-        // Continue to API as fallback - only show a toast if the API succeeds after Firestore failed
-        try {
-          await apiRequest('POST', `/api/suppliers/${supplierForPayment.id}/payment`, { 
-            amount,
-            description: `Payment to supplier: ${supplierForPayment.name}`
-          });
-          
-          console.log("Payment recorded via API after Firestore failed");
-          
-          // Since Firestore failed but API succeeded, now show a success toast
-          toast({
-            title: "Payment recorded",
-            description: `Payment of ₹${amount.toFixed(2)} to ${supplierForPayment.name} has been recorded via API`,
-          });
-        } catch (apiError) {
-          console.error("Both Firestore and API payment methods failed:", apiError);
-          
-          // Both methods failed, so show an error toast
-          toast({
-            title: "Payment failed",
-            description: "There was an error recording the payment. Please try again.",
-            variant: "destructive",
-          });
-          
-          // Return early since both methods failed
-          return;
-        }
-      }
+      // Use API only - single source of truth
+      await apiRequest('POST', `/api/suppliers/${supplierForPayment.id}/payment`, { 
+        amount,
+        description: `Payment to supplier: ${supplierForPayment.name}`
+      });
       
-      // Refresh local state after payment
-      const refreshedSuppliers = await SupplierService.getSuppliers();
-      setFirestoreSuppliers(refreshedSuppliers);
+      toast({
+        title: "Payment recorded",
+        description: `Payment of ₹${amount.toFixed(2)} to ${supplierForPayment.name} has been recorded`,
+      });
       
-      // Refresh API data via query cache
+      // Refresh data via query cache
       queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     } catch (error) {
