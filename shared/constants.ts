@@ -13,6 +13,21 @@ export const ITEM_TYPES = [
   { value: 'order', label: 'Order' }
 ] as const;
 
+// Helper function to get item label by value
+export function getItemLabel(value: string): string {
+  const item = ITEM_TYPES.find(type => type.value === value);
+  return item ? item.label : value.charAt(0).toUpperCase() + value.slice(1).replace('-', ' ');
+}
+
+// Helper function to format item list for display
+export function formatItemsList(items: Array<{ type: string; quantity: number }>): string {
+  if (!items || items.length === 0) return 'No items';
+  
+  return items.map(item => 
+    `${item.quantity}kg ${getItemLabel(item.type)}`
+  ).join(', ');
+}
+
 export const CUSTOMER_TYPES = [
   { value: 'hotel', label: 'Hotel' },
   { value: 'random', label: 'Random Customer' }
