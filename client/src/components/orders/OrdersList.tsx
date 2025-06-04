@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Order, Customer, OrderItem } from "@shared/schema";
+import { getItemLabel } from "@shared/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -84,7 +85,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
       // Add item details
       message += `\n\n*Items Purchased:*`;
       (specificOrder.items as OrderItem[]).forEach(item => {
-        message += `\n- ${item.quantity.toFixed(2)} kg ${item.type} (₹${item.rate.toFixed(2)}/kg)`;
+        message += `\n- ${item.quantity.toFixed(2)} kg ${getItemLabel(item.type)} (₹${item.rate.toFixed(2)}/kg)`;
       });
     } else {
       // No specific order, just a general message
@@ -104,7 +105,7 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
     // Take first 2 items and summarize
     const displayItems = items.slice(0, 2).map(item => {
       const details = item.details ? ` (${item.details})` : '';
-      return `${item.quantity} kg ${item.type}${details}`;
+      return `${item.quantity} kg ${getItemLabel(item.type)}${details}`;
     }).join(', ');
     
     return items.length > 2 

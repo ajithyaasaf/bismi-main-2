@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Order, Customer } from "@shared/schema";
+import { getItemLabel } from "@shared/constants";
 import { format } from "date-fns";
 
 interface RecentOrdersProps {
@@ -21,7 +22,7 @@ export default function RecentOrders({ orders, customers }: RecentOrdersProps) {
     
     // Take first 2 items and summarize
     const displayItems = items.slice(0, 2).map(item => 
-      `${item.quantity} kg ${item.type}`
+      `${item.quantity} kg ${getItemLabel(item.type)}`
     ).join(', ');
     
     return items.length > 2 

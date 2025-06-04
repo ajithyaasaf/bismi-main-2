@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, json, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { ITEM_TYPES } from "./constants";
 
 // Base user schema kept for compatibility
 export const users = pgTable("users", {
@@ -46,6 +47,8 @@ export const inventory = pgTable("inventory", {
 export const insertInventorySchema = createInsertSchema(inventory).omit({
   id: true,
   updatedAt: true,
+}).extend({
+  type: z.enum(ITEM_TYPES.map(item => item.value) as [string, ...string[]])
 });
 
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
