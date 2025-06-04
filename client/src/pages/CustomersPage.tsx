@@ -258,7 +258,7 @@ export default function CustomersPage() {
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
             onPayment={openPaymentModal}
-            onGenerateInvoice={handleGenerateInvoice}
+            onGenerateInvoice={() => {}}
           />
         </>
       )}
