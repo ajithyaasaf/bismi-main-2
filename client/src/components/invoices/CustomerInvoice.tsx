@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, addDays, parseISO } from 'date-fns';
 import { Download, Eye, Printer, Mail, Settings, FileText, AlertTriangle } from 'lucide-react';
 import InvoiceTemplate from './InvoiceTemplate';
-import { enterpriseInvoiceService, InvoiceGenerationOptions } from '@/services/EnterpriseInvoiceService';
+import { generatePDFInvoice, InvoiceData } from './ReactPDFInvoice';
 
 interface CustomerInvoiceProps {
   isOpen: boolean;
@@ -102,59 +102,30 @@ export function CustomerInvoice({
   }, [isGenerating]);
 
   const handleGeneratePDF = useCallback(async () => {
-    // Wait for DOM to be ready and ref to be attached
-    const waitForRef = () => {
-      return new Promise<HTMLDivElement>((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 50; // 5 seconds maximum wait
-        
-        const checkRef = () => {
-          attempts++;
-          
-          if (invoiceRef.current) {
-            resolve(invoiceRef.current);
-            return;
-          }
-          
-          if (attempts >= maxAttempts) {
-            reject(new Error("Invoice template failed to load"));
-            return;
-          }
-          
-          setTimeout(checkRef, 100); // Check every 100ms
-        };
-        
-        checkRef();
-      });
-    };
-
     setIsGenerating(true);
     setGenerationProgress(10);
 
     try {
-      // Wait for the invoice template to be ready
-      setGenerationProgress(20);
-      const invoiceElement = await waitForRef();
-      
       setGenerationProgress(30);
 
-      // Configure PDF options
-      const options: InvoiceGenerationOptions = {
-        filename: `invoice-${customer.name.replace(/\s+/g, '-')}-${invoiceNumber}.pdf`,
-        quality: 0.95,
-        scale: 2,
-        format: 'a4',
-        orientation: 'portrait'
+      // Prepare data for PDF generation
+      const invoiceData: InvoiceData = {
+        customer,
+        orders,
+        currentDate,
+        invoiceNumber,
+        dueDate: settings.dueDate,
+        showPaid: settings.showPaid,
+        overdueThresholdDays: settings.overdueThresholdDays,
+        payments: transactions,
+        businessInfo: settings.businessInfo,
+        paymentInfo: settings.paymentInfo
       };
 
-      setGenerationProgress(50);
+      setGenerationProgress(60);
 
-      // Generate PDF using enterprise service
-      const pdfBlob = await enterpriseInvoiceService.generateInvoicePDF(invoiceElement, options);
-      setGenerationProgress(90);
-
-      // Download the PDF
-      await enterpriseInvoiceService.downloadPDF(pdfBlob, options.filename || 'invoice.pdf');
+      // Generate PDF using React PDF
+      await generatePDFInvoice(invoiceData);
       setGenerationProgress(100);
 
       toast({
@@ -175,7 +146,7 @@ export function CustomerInvoice({
         setGenerationProgress(0);
       }, 500);
     }
-  }, [customer.name, invoiceNumber, toast]);
+  }, [customer, orders, currentDate, invoiceNumber, settings, transactions, toast]);
 
   const handlePrint = useCallback(() => {
     if (!invoiceRef.current) return;
@@ -202,8 +173,32 @@ export function CustomerInvoice({
               body { margin: 0; }
               .no-print { display: none !important; }
             }
-            /* Include Tailwind classes inline for print */
-            ${getComputedStyles()}
+            .bg-white { background-color: white; }
+            .text-gray-600 { color: #4b5563; }
+            .text-blue-800 { color: #1e40af; }
+            .text-red-600 { color: #dc2626; }
+            .text-green-600 { color: #16a34a; }
+            .font-bold { font-weight: bold; }
+            .font-semibold { font-weight: 600; }
+            .text-lg { font-size: 1.125rem; }
+            .text-sm { font-size: 0.875rem; }
+            .text-xs { font-size: 0.75rem; }
+            .p-3 { padding: 0.75rem; }
+            .p-6 { padding: 1.5rem; }
+            .p-8 { padding: 2rem; }
+            .mb-2 { margin-bottom: 0.5rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .mb-8 { margin-bottom: 2rem; }
+            .border { border-width: 1px; }
+            .border-gray-300 { border-color: #d1d5db; }
+            .rounded { border-radius: 0.25rem; }
+            .flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .w-full { width: 100%; }
+            table { border-collapse: collapse; width: 100%; }
+            td, th { border: 1px solid #d1d5db; padding: 0.75rem; }
           </style>
         </head>
         <body onload="window.print(); window.close();">
@@ -214,38 +209,6 @@ export function CustomerInvoice({
     
     printWindow.document.close();
   }, [customer.name, toast]);
-
-  const getComputedStyles = (): string => {
-    // Extract essential styles for printing
-    return `
-      .bg-white { background-color: white; }
-      .text-gray-600 { color: #4b5563; }
-      .text-blue-800 { color: #1e40af; }
-      .text-red-600 { color: #dc2626; }
-      .text-green-600 { color: #16a34a; }
-      .font-bold { font-weight: bold; }
-      .font-semibold { font-weight: 600; }
-      .text-lg { font-size: 1.125rem; }
-      .text-sm { font-size: 0.875rem; }
-      .text-xs { font-size: 0.75rem; }
-      .p-3 { padding: 0.75rem; }
-      .p-6 { padding: 1.5rem; }
-      .p-8 { padding: 2rem; }
-      .mb-2 { margin-bottom: 0.5rem; }
-      .mb-4 { margin-bottom: 1rem; }
-      .mb-8 { margin-bottom: 2rem; }
-      .border { border-width: 1px; }
-      .border-gray-300 { border-color: #d1d5db; }
-      .rounded { border-radius: 0.25rem; }
-      .flex { display: flex; }
-      .justify-between { justify-content: space-between; }
-      .text-right { text-align: right; }
-      .text-center { text-align: center; }
-      .w-full { width: 100%; }
-      table { border-collapse: collapse; width: 100%; }
-      td, th { border: 1px solid #d1d5db; padding: 0.75rem; }
-    `;
-  };
 
   const updateBusinessInfo = (field: keyof InvoiceSettings['businessInfo'], value: string | string[]) => {
     setSettings(prev => ({
