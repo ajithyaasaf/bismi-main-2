@@ -140,39 +140,39 @@ const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({
       color: '#333'
     }}>
       {/* Header Section */}
-      <div className="header flex justify-between items-start mb-8 pb-6 border-b-2 border-gray-200">
-        <div className="business-info">
-          <h1 className="text-3xl font-bold text-blue-800 mb-2">{businessInfo.name}</h1>
+      <div className="header flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 sm:mb-8 pb-4 sm:pb-6 border-b-2 border-gray-200 gap-4">
+        <div className="business-info flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-2">{businessInfo.name}</h1>
           {businessInfo.address.map((line, index) => (
-            <p key={index} className="text-sm text-gray-600 mb-1">{line}</p>
+            <p key={index} className="text-xs sm:text-sm text-gray-600 mb-1">{line}</p>
           ))}
-          <p className="text-sm text-gray-600">Phone: {businessInfo.phone}</p>
-          <p className="text-sm text-gray-600">GSTIN: {businessInfo.gstin}</p>
-          <p className="text-sm text-gray-600">Email: {businessInfo.email}</p>
+          <p className="text-xs sm:text-sm text-gray-600">Phone: {businessInfo.phone}</p>
+          <p className="text-xs sm:text-sm text-gray-600">GSTIN: {businessInfo.gstin}</p>
+          <p className="text-xs sm:text-sm text-gray-600">Email: {businessInfo.email}</p>
         </div>
-        <div className="invoice-info text-right">
-          <h2 className="text-3xl font-bold text-blue-800 mb-2">INVOICE</h2>
-          <p className="text-lg text-gray-600">#{invoiceNumber}</p>
+        <div className="invoice-info text-left sm:text-right">
+          <h2 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-2">INVOICE</h2>
+          <p className="text-base sm:text-lg text-gray-600">#{invoiceNumber}</p>
         </div>
       </div>
 
       {/* Invoice Details Section */}
-      <div className="invoice-details flex justify-between mb-8">
-        <div className="bill-to">
-          <h3 className="text-lg font-bold mb-3">BILL TO:</h3>
-          <p className="font-semibold text-lg">{customer.name}</p>
-          <p className="text-gray-600">Type: {customer.type === 'hotel' ? 'Hotel/Restaurant' : 'Retail Customer'}</p>
-          {customer.contact && <p className="text-gray-600">Contact: {customer.contact}</p>}
+      <div className="invoice-details flex flex-col lg:flex-row lg:justify-between mb-6 lg:mb-8 gap-6">
+        <div className="bill-to flex-1">
+          <h3 className="text-base lg:text-lg font-bold mb-3">BILL TO:</h3>
+          <p className="font-semibold text-base lg:text-lg">{customer.name}</p>
+          <p className="text-xs lg:text-sm text-gray-600">Type: {customer.type === 'hotel' ? 'Hotel/Restaurant' : 'Retail Customer'}</p>
+          {customer.contact && <p className="text-xs lg:text-sm text-gray-600">Contact: {customer.contact}</p>}
         </div>
-        <div className="invoice-meta">
-          <h3 className="text-lg font-bold mb-3">INVOICE DETAILS:</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="invoice-meta flex-1 lg:max-w-xs">
+          <h3 className="text-base lg:text-lg font-bold mb-3">INVOICE DETAILS:</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs lg:text-sm">
             <span className="text-gray-600">Invoice Date:</span>
             <span>{format(parseISO(currentDate), 'dd/MM/yyyy')}</span>
             <span className="text-gray-600">Due Date:</span>
             <span>{format(parseISO(dueDate), 'dd/MM/yyyy')}</span>
             <span className="text-gray-600">Customer ID:</span>
-            <span>{customer.id.substring(0, 8).toUpperCase()}</span>
+            <span className="break-all">{customer.id.substring(0, 8).toUpperCase()}</span>
             <span className="text-gray-600">Payment Status:</span>
             <span className={totalPending > 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
               {totalPending > 0 ? 'PENDING' : 'PAID'}
@@ -182,19 +182,20 @@ const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({
       </div>
 
       {/* Orders Table */}
-      <div className="orders-section mb-8">
-        <h3 className="text-lg font-bold mb-4">Order Summary</h3>
-        <table className="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 p-3 text-left">Order ID</th>
-              <th className="border border-gray-300 p-3 text-left">Date</th>
-              <th className="border border-gray-300 p-3 text-left">Items</th>
-              <th className="border border-gray-300 p-3 text-right">Amount</th>
-              <th className="border border-gray-300 p-3 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="orders-section mb-6 lg:mb-8">
+        <h3 className="text-base lg:text-lg font-bold mb-4">Order Summary</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-gray-300 min-w-[500px]">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 p-2 lg:p-3 text-left text-xs lg:text-sm">Order ID</th>
+                <th className="border border-gray-300 p-2 lg:p-3 text-left text-xs lg:text-sm">Date</th>
+                <th className="border border-gray-300 p-2 lg:p-3 text-left text-xs lg:text-sm">Items</th>
+                <th className="border border-gray-300 p-2 lg:p-3 text-right text-xs lg:text-sm">Amount</th>
+                <th className="border border-gray-300 p-2 lg:p-3 text-center text-xs lg:text-sm">Status</th>
+              </tr>
+            </thead>
+            <tbody>
             {filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan={5} className="border border-gray-300 p-4 text-center text-gray-500">
