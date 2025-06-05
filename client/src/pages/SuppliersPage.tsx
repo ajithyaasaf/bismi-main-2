@@ -123,9 +123,29 @@ export default function SuppliersPage() {
         description: `Payment of ₹${amount.toFixed(2)} to ${supplierForPayment.name} has been recorded`,
       });
       
+      // Update local Firestore state immediately for instant UI update
+      setFirestoreSuppliers(prev => 
+        prev.map(supplier => 
+          supplier.id === supplierForPayment.id 
+            ? { ...supplier, debt: Math.max(0, (supplier.debt || 0) - amount) }
+            : supplier
+        )
+      );
+      
       // Refresh data via query cache
       queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      // Refresh Firestore data in background to ensure consistency
+      setTimeout(async () => {
+        try {
+          const updatedSuppliers = await SupplierService.getSuppliers();
+          setFirestoreSuppliers(updatedSuppliers);
+        } catch (error) {
+          console.error("Error refreshing suppliers from Firestore:", error);
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error("Error during payment processing:", error);
       toast({
