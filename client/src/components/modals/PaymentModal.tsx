@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (amount: number) => void;
+  onSubmit: (amount: number) => Promise<void>;
   entityName: string;
   entityType: 'supplier' | 'customer';
   currentAmount?: number;
@@ -25,10 +25,21 @@ export default function PaymentModal({
   title = "Record Payment",
   description
 }: PaymentModalProps) {
-  const [amount, setAmount] = useState<string>(currentAmount.toString());
+  const [amount, setAmount] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Reset form when modal opens/closes or currentAmount changes
+  useEffect(() => {
+    if (isOpen) {
+      setAmount(currentAmount > 0 ? currentAmount.toString() : '');
+      setIsSubmitting(false);
+    } else {
+      setAmount('');
+      setIsSubmitting(false);
+    }
+  }, [isOpen, currentAmount]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     
@@ -37,7 +48,16 @@ export default function PaymentModal({
     }
     
     setIsSubmitting(true);
-    onSubmit(numAmount);
+    try {
+      await onSubmit(numAmount);
+      // Reset form and close modal on success
+      setAmount('');
+      onClose();
+    } catch (error) {
+      console.error('Payment submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
