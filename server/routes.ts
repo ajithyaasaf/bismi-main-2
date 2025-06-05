@@ -442,10 +442,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/orders", async (req: Request, res: Response) => {
     try {
       // Enterprise-level request preprocessing for date handling
+      console.log('Raw request body date:', req.body.date);
+      
       const processedBody = {
         ...req.body,
         date: req.body.date ? new Date(req.body.date) : new Date()
       };
+      
+      console.log('Processed date for order:', processedBody.date);
       
       const result = insertOrderSchema.safeParse(processedBody);
       if (!result.success) {
@@ -463,6 +467,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
+      
+      console.log('Final validated order data date:', result.data.date);
       
       const storage = await getStorage();
       
