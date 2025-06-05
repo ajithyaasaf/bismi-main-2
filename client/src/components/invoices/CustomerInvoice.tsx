@@ -232,11 +232,11 @@ export function CustomerInvoice({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Invoice for {customer.name}
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="truncate">Invoice for {customer.name}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -258,46 +258,46 @@ export function CustomerInvoice({
         </div>
 
         <Tabs defaultValue="preview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="preview" className="text-xs sm:text-sm px-2 py-2">Preview</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm px-2 py-2">Settings</TabsTrigger>
+            <TabsTrigger value="actions" className="text-xs sm:text-sm px-2 py-2">Actions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="preview" className="mt-6">
             <div className="space-y-4">
               {/* Quick Stats */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6">
                 <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-blue-600">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600">
                       ₹{totalAmount.toFixed(2)}
                     </div>
-                    <p className="text-xs text-gray-600">Total Orders</p>
+                    <p className="text-xs text-gray-600">Total Value</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-red-600">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-lg sm:text-2xl font-bold text-red-600">
                       ₹{pendingAmount.toFixed(2)}
                     </div>
-                    <p className="text-xs text-gray-600">Pending Amount</p>
+                    <p className="text-xs text-gray-600">Pending</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-green-600">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-lg sm:text-2xl font-bold text-green-600">
                       {relevantOrders.length}
                     </div>
                     <p className="text-xs text-gray-600">Total Orders</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-orange-600">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
                       {unpaidOrders.length}
                     </div>
-                    <p className="text-xs text-gray-600">Unpaid Orders</p>
+                    <p className="text-xs text-gray-600">Unpaid</p>
                   </CardContent>
                 </Card>
               </div>
@@ -305,14 +305,16 @@ export function CustomerInvoice({
               {/* PDF Generation Progress */}
               {isGenerating && (
                 <Card className="border-blue-200 bg-blue-50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Generating PDF...</p>
-                        <Progress value={generationProgress} className="mt-2" />
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="animate-spin h-4 w-4 sm:h-5 sm:w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-xs sm:text-sm font-medium">Generating PDF...</p>
+                          <Progress value={generationProgress} className="mt-2" />
+                        </div>
                       </div>
-                      <span className="text-sm text-gray-600">{Math.round(generationProgress)}%</span>
+                      <span className="text-xs sm:text-sm text-gray-600 self-end sm:self-auto">{Math.round(generationProgress)}%</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -337,7 +339,7 @@ export function CustomerInvoice({
           </TabsContent>
 
           <TabsContent value="settings" className="mt-6">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {/* Invoice Settings */}
               <Card>
                 <CardHeader>
@@ -543,13 +545,14 @@ export function CustomerInvoice({
 
         <Separator />
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Close
           </Button>
-          <Button onClick={handleGeneratePDF} disabled={isGenerating}>
+          <Button onClick={handleGeneratePDF} disabled={isGenerating} className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
-            Generate PDF
+            <span className="hidden sm:inline">Generate PDF</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
         </div>
       </DialogContent>
