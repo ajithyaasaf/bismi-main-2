@@ -144,9 +144,28 @@ export default function CustomersPage() {
         description: `Payment of ₹${amount.toFixed(2)} from ${customerName} has been recorded`,
       });
       
+      // Update local Firestore state immediately for instant UI update
+      setFirestoreCustomers(prev => 
+        prev.map(customer => 
+          customer.id === customerId 
+            ? { ...customer, pendingAmount: Math.max(0, (customer.pendingAmount || 0) - amount) }
+            : customer
+        )
+      );
+      
       // Refresh data via query cache
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      
+      // Refresh Firestore data in background to ensure consistency
+      setTimeout(async () => {
+        try {
+          const updatedCustomers = await CustomerService.getCustomers();
+          setFirestoreCustomers(updatedCustomers);
+        } catch (error) {
+          console.error("Error refreshing customers from Firestore:", error);
+        }
+      }, 1000);
     } catch (error) {
       console.error("Error during payment processing:", error);
       toast({
