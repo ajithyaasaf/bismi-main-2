@@ -445,6 +445,7 @@ export class FirebaseStorage implements IStorage {
           customerId: data.customerId,
           items: data.items,
           date: this.convertTimestamp(data.date),
+          createdAt: this.convertTimestamp(data.createdAt), // Enterprise audit timestamp
           total: data.total,
           status: data.status,
           type: data.type
@@ -469,6 +470,7 @@ export class FirebaseStorage implements IStorage {
         customerId: data.customerId,
         items: data.items,
         date: this.convertTimestamp(data.date),
+        createdAt: this.convertTimestamp(data.createdAt), // Enterprise audit timestamp
         total: data.total,
         status: data.status,
         type: data.type
