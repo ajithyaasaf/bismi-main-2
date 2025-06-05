@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Supplier, Customer } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,17 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setEntityType('supplier');
+      setEntityId('');
+      setType('payment');
+      setAmount('');
+      setDescription('');
+    }
+  }, [isOpen]);
   
   // Handle entity type change
   const handleEntityTypeChange = (value: string) => {
@@ -115,7 +126,12 @@ export default function TransactionForm({ isOpen, onClose, suppliers, customers 
         queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       }
       
-      // Close modal
+      // Reset form and close modal
+      setEntityType('supplier');
+      setEntityId('');
+      setType('payment');
+      setAmount('');
+      setDescription('');
       onClose();
     } catch (error) {
       toast({
