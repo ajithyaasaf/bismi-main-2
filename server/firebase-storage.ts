@@ -504,7 +504,7 @@ export class FirebaseStorage implements IStorage {
       if (snapshot.empty) return undefined;
       
       const docRef = snapshot.docs[0].ref;
-      const updateData = { ...order };
+      const updateData: any = { ...order };
       
       // Preserve date if provided, don't override with current timestamp
       if (order.date) {

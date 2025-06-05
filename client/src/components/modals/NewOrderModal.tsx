@@ -230,14 +230,13 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       // Calculate total
       const total = calculateTotal();
       
-      // Create order via API only - single source of truth
-      // Use current timestamp for actual order placement time for enterprise accuracy
-      const orderPlacementTime = new Date();
+      // Create order with selected date
+      const selectedOrderDate = new Date(orderDate);
       
       await apiRequest('POST', '/api/orders', {
         customerId: orderCustomerId,
         items: validItems,
-        date: orderPlacementTime.toISOString(),
+        date: selectedOrderDate.toISOString(),
         total,
         status: paymentStatus,
         type: customerType
