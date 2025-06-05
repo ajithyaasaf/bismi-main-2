@@ -231,7 +231,10 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
       const total = calculateTotal();
       
       // Create order with selected date
-      const selectedOrderDate = new Date(orderDate);
+      const selectedOrderDate = new Date(orderDate + 'T00:00:00.000Z');
+      
+      console.log('Selected order date:', orderDate);
+      console.log('Converted order date:', selectedOrderDate.toISOString());
       
       await apiRequest('POST', '/api/orders', {
         customerId: orderCustomerId,
