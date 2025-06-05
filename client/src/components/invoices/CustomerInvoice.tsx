@@ -102,19 +102,40 @@ export function CustomerInvoice({
   }, [isGenerating]);
 
   const handleGeneratePDF = useCallback(async () => {
-    if (!invoiceRef.current) {
-      toast({
-        title: "Generation Error",
-        description: "Invoice template not ready. Please try again.",
-        variant: "destructive"
+    // Wait for DOM to be ready and ref to be attached
+    const waitForRef = () => {
+      return new Promise<HTMLDivElement>((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds maximum wait
+        
+        const checkRef = () => {
+          attempts++;
+          
+          if (invoiceRef.current) {
+            resolve(invoiceRef.current);
+            return;
+          }
+          
+          if (attempts >= maxAttempts) {
+            reject(new Error("Invoice template failed to load"));
+            return;
+          }
+          
+          setTimeout(checkRef, 100); // Check every 100ms
+        };
+        
+        checkRef();
       });
-      return;
-    }
+    };
 
     setIsGenerating(true);
     setGenerationProgress(10);
 
     try {
+      // Wait for the invoice template to be ready
+      setGenerationProgress(20);
+      const invoiceElement = await waitForRef();
+      
       setGenerationProgress(30);
 
       // Configure PDF options
@@ -129,7 +150,7 @@ export function CustomerInvoice({
       setGenerationProgress(50);
 
       // Generate PDF using enterprise service
-      const pdfBlob = await enterpriseInvoiceService.generateInvoicePDF(invoiceRef.current, options);
+      const pdfBlob = await enterpriseInvoiceService.generateInvoicePDF(invoiceElement, options);
       setGenerationProgress(90);
 
       // Download the PDF

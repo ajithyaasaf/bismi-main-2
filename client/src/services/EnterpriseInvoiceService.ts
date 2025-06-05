@@ -116,10 +116,23 @@ export class EnterpriseInvoiceService {
     options: Required<InvoiceGenerationOptions>
   ): Promise<Blob> {
     try {
+      console.log('Starting HTML2Canvas PDF generation...');
+      
+      // Validate element
+      if (!element || !element.offsetWidth || !element.offsetHeight) {
+        throw new Error('Element is not visible or has no dimensions');
+      }
+
       // Prepare element for PDF generation
       const preparedElement = await this.prepareElementForPDF(element);
+      console.log('Element prepared for PDF:', {
+        width: preparedElement.offsetWidth,
+        height: preparedElement.offsetHeight,
+        scrollWidth: preparedElement.scrollWidth,
+        scrollHeight: preparedElement.scrollHeight
+      });
 
-      // Generate canvas
+      // Generate canvas with improved options
       const canvas = await html2canvas(preparedElement, {
         scale: options.scale,
         useCORS: true,
@@ -127,8 +140,22 @@ export class EnterpriseInvoiceService {
         backgroundColor: '#ffffff',
         width: preparedElement.scrollWidth,
         height: preparedElement.scrollHeight,
-        logging: false
+        logging: false,
+        removeContainer: true,
+        foreignObjectRendering: false,
+        imageTimeout: 15000,
+        onclone: (clonedDoc) => {
+          // Ensure all styles are applied to cloned document
+          const clonedElement = clonedDoc.querySelector('.invoice-template');
+          if (clonedElement) {
+            (clonedElement as HTMLElement).style.transform = 'none';
+            (clonedElement as HTMLElement).style.maxWidth = 'none';
+            (clonedElement as HTMLElement).style.overflow = 'visible';
+          }
+        }
       });
+
+      console.log('Canvas generated:', { width: canvas.width, height: canvas.height });
 
       // Create PDF
       const pdf = new jsPDF({
@@ -142,21 +169,35 @@ export class EnterpriseInvoiceService {
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
 
-      // Calculate scaling to fit page
-      const ratio = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight);
-      const imgWidth = canvasWidth * ratio;
-      const imgHeight = canvasHeight * ratio;
+      // Calculate scaling to fit page with margins
+      const margin = 10; // 10mm margin
+      const availableWidth = pdfWidth - (margin * 2);
+      const availableHeight = pdfHeight - (margin * 2);
+      
+      const widthRatio = availableWidth / (canvasWidth / options.scale);
+      const heightRatio = availableHeight / (canvasHeight / options.scale);
+      const ratio = Math.min(widthRatio, heightRatio);
+      
+      const imgWidth = (canvasWidth / options.scale) * ratio;
+      const imgHeight = (canvasHeight / options.scale) * ratio;
+      
+      // Center the image on the page
+      const xOffset = (pdfWidth - imgWidth) / 2;
+      const yOffset = margin;
 
       // Convert canvas to image data
       const imgData = canvas.toDataURL('image/jpeg', options.quality);
+      console.log('Image data generated, size:', imgData.length);
 
       // Add image to PDF
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', xOffset, yOffset, imgWidth, imgHeight);
 
       // Return as blob
       const blob = pdf.output('blob');
+      console.log('PDF blob generated, size:', blob.size);
       return blob;
     } catch (error) {
+      console.error('HTML2Canvas generation failed:', error);
       throw new Error(`Canvas generation failed: ${(error as Error).message}`);
     }
   }
