@@ -56,9 +56,9 @@ export async function getOrders() {
       return {
         ...data,
         firebaseId: doc.id,
-        // Convert Firestore timestamp to JS Date if needed
-        createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(),
-        date: data.date instanceof Date ? data.date : new Date()
+        // Convert Firestore timestamp to JS Date with proper handling
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt instanceof Date ? data.createdAt : new Date()),
+        date: data.date?.toDate ? data.date.toDate() : (data.date instanceof Date ? data.date : new Date())
       };
     });
     
@@ -84,9 +84,9 @@ export async function getOrdersByCustomer(customerId: string) {
       return {
         ...data,
         firebaseId: doc.id,
-        // Convert Firestore timestamp to JS Date if needed
-        createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(),
-        date: data.date instanceof Date ? data.date : new Date()
+        // Convert Firestore timestamp to JS Date with proper handling
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt instanceof Date ? data.createdAt : new Date()),
+        date: data.date?.toDate ? data.date.toDate() : (data.date instanceof Date ? data.date : new Date())
       };
     });
     

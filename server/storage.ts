@@ -40,7 +40,7 @@ export interface IStorage {
   getAllOrders(): Promise<Order[]>;
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
   getOrder(id: string): Promise<Order | undefined>;
-  createOrder(order: InsertOrder): Promise<Order>;
+  createOrder(order: InsertOrder & { createdAt?: Date }): Promise<Order>;
   updateOrder(id: string, order: Partial<InsertOrder>): Promise<Order | undefined>;
   deleteOrder(id: string): Promise<boolean>;
   
@@ -220,8 +220,10 @@ export class MemStorage implements IStorage {
     return this.ordersList.get(id);
   }
 
-  async createOrder(order: InsertOrder): Promise<Order> {
+  async createOrder(order: InsertOrder & { createdAt?: Date }): Promise<Order> {
     const id = uuidv4();
+    const now = new Date();
+    
     // Convert items to JSON if needed
     const itemsValue = typeof order.items === 'string' 
       ? JSON.parse(order.items as unknown as string) 
@@ -230,7 +232,8 @@ export class MemStorage implements IStorage {
     const newOrder: Order = { 
       ...order, 
       id,
-      date: order.date ?? new Date(),
+      date: order.date ?? now,
+      createdAt: order.createdAt ?? now, // Enterprise audit timestamp
       total: order.total ?? 0,
       items: itemsValue
     };
