@@ -480,15 +480,16 @@ export class FirebaseStorage implements IStorage {
 
   async createOrder(order: InsertOrder): Promise<Order> {
     try {
+      const orderDate = order.date ? Timestamp.fromDate(new Date(order.date)) : Timestamp.now();
       const newOrder = {
         id: uuidv4(),
         ...order,
-        date: Timestamp.now()
+        date: orderDate
       };
       await addDoc(collection(this.db, 'orders'), newOrder);
       return {
         ...newOrder,
-        date: new Date()
+        date: order.date ? new Date(order.date) : new Date()
       } as Order;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -503,7 +504,14 @@ export class FirebaseStorage implements IStorage {
       if (snapshot.empty) return undefined;
       
       const docRef = snapshot.docs[0].ref;
-      await updateDoc(docRef, order);
+      const updateData = { ...order };
+      
+      // Preserve date if provided, don't override with current timestamp
+      if (order.date) {
+        updateData.date = Timestamp.fromDate(new Date(order.date));
+      }
+      
+      await updateDoc(docRef, updateData);
       
       const updatedDoc = await getDoc(docRef);
       const data = updatedDoc.data();
@@ -609,15 +617,16 @@ export class FirebaseStorage implements IStorage {
 
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     try {
+      const transactionDate = transaction.date ? Timestamp.fromDate(new Date(transaction.date)) : Timestamp.now();
       const newTransaction = {
         id: uuidv4(),
         ...transaction,
-        date: Timestamp.now()
+        date: transactionDate
       };
       await addDoc(collection(this.db, 'transactions'), newTransaction);
       return {
         ...newTransaction,
-        date: new Date()
+        date: transaction.date ? new Date(transaction.date) : new Date()
       } as Transaction;
     } catch (error) {
       console.error('Error creating transaction:', error);
