@@ -94,6 +94,11 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
 }).extend({
   items: z.array(orderItemSchema),
+  date: z.union([
+    z.date(),
+    z.string().datetime().transform((val) => new Date(val)),
+    z.string().transform((val) => new Date(val))
+  ]).optional(),
 });
 
 export type OrderItem = z.infer<typeof orderItemSchema>;
@@ -113,6 +118,12 @@ export const transactions = pgTable("transactions", {
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
+}).extend({
+  date: z.union([
+    z.date(),
+    z.string().datetime().transform((val) => new Date(val)),
+    z.string().transform((val) => new Date(val))
+  ]).optional(),
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;

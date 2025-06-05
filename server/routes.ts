@@ -129,15 +129,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Supplier not found" });
       }
 
-      // Create transaction record
-      const transaction = await storage.createTransaction({
+      // Enterprise-level transaction data preparation
+      const transactionData = {
         type: "payment",
         amount: parseFloat(amount),
         entityId: req.params.id,
         entityType: "supplier",
         description: description || `Payment to supplier: ${supplier.name}`,
         date: new Date()
-      });
+      };
+
+      // Create transaction record
+      const transaction = await storage.createTransaction(transactionData);
 
       // Update supplier debt
       const newDebt = (supplier.debt || 0) - parseFloat(amount);
@@ -386,15 +389,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Customer not found" });
       }
 
-      // Create transaction record
-      const transaction = await storage.createTransaction({
+      // Enterprise-level transaction data preparation
+      const transactionData = {
         type: "receipt",
         amount: parseFloat(amount),
         entityId: req.params.id,
         entityType: "customer",
         description: description || `Payment from customer: ${customer.name}`,
         date: new Date()
-      });
+      };
+
+      // Create transaction record
+      const transaction = await storage.createTransaction(transactionData);
 
       // Update customer pending amount
       const newPending = (customer.pendingAmount || 0) - parseFloat(amount);
@@ -435,9 +441,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/orders", async (req: Request, res: Response) => {
     try {
-      const result = insertOrderSchema.safeParse(req.body);
+      // Enterprise-level request preprocessing for date handling
+      const processedBody = {
+        ...req.body,
+        date: req.body.date ? new Date(req.body.date) : new Date()
+      };
+      
+      const result = insertOrderSchema.safeParse(processedBody);
       if (!result.success) {
-        return res.status(400).json({ message: "Invalid order data", errors: result.error.errors });
+        console.error("Order validation failed:", result.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid order data", 
+          errors: result.error.errors,
+          receivedData: {
+            customerId: req.body.customerId,
+            items: req.body.items,
+            date: req.body.date,
+            total: req.body.total,
+            status: req.body.status,
+            type: req.body.type
+          }
+        });
       }
       
       const storage = await getStorage();
@@ -611,7 +635,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         lowStockItems,
         recentTransactions: transactions
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .filter(t => t.date !== null && t.date !== undefined)
+          .sort((a, b) => {
+            const dateA = new Date(a.date!).getTime();
+            const dateB = new Date(b.date!).getTime();
+            return dateB - dateA;
+          })
           .slice(0, 10)
       };
 
