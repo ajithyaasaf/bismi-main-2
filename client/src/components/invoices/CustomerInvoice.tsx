@@ -240,22 +240,7 @@ export function CustomerInvoice({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Hidden Invoice Template for PDF Generation - Always rendered */}
-        <div className="absolute -top-[9999px] left-0 opacity-0 pointer-events-none">
-          <InvoiceTemplate
-            ref={invoiceRef}
-            customer={customer}
-            orders={orders}
-            currentDate={currentDate}
-            invoiceNumber={invoiceNumber}
-            dueDate={settings.dueDate}
-            showPaid={settings.showPaid}
-            overdueThresholdDays={settings.overdueThresholdDays}
-            payments={transactions}
-            businessInfo={settings.businessInfo}
-            paymentInfo={settings.paymentInfo}
-          />
-        </div>
+
 
         <Tabs defaultValue="preview" className="w-full">
           <TabsList className="grid w-full grid-cols-3 h-auto">
@@ -342,10 +327,10 @@ export function CustomerInvoice({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {/* Invoice Settings */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Invoice Settings</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm sm:text-base">Invoice Settings</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="showPaid"
@@ -354,11 +339,11 @@ export function CustomerInvoice({
                         setSettings(prev => ({ ...prev, showPaid: !!checked }))
                       }
                     />
-                    <Label htmlFor="showPaid">Include paid orders</Label>
+                    <Label htmlFor="showPaid" className="text-xs sm:text-sm">Include paid orders</Label>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="dueDate">Due Date</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="dueDate" className="text-xs sm:text-sm">Due Date</Label>
                     <Input
                       id="dueDate"
                       type="date"
@@ -366,11 +351,12 @@ export function CustomerInvoice({
                       onChange={(e) => 
                         setSettings(prev => ({ ...prev, dueDate: e.target.value }))
                       }
+                      className="text-xs sm:text-sm h-8 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="overdueThreshold">Overdue Threshold (days)</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="overdueThreshold" className="text-xs sm:text-sm">Overdue Threshold (days)</Label>
                     <Input
                       id="overdueThreshold"
                       type="number"
@@ -378,6 +364,7 @@ export function CustomerInvoice({
                       onChange={(e) => 
                         setSettings(prev => ({ ...prev, overdueThresholdDays: parseInt(e.target.value) || 15 }))
                       }
+                      className="text-xs sm:text-sm h-8 sm:h-10"
                     />
                   </div>
                 </CardContent>
@@ -385,78 +372,85 @@ export function CustomerInvoice({
 
               {/* Business Information */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Business Information</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm sm:text-base">Business Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName">Business Name</Label>
+                <CardContent className="space-y-3 sm:space-y-4">
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="businessName" className="text-xs sm:text-sm">Business Name</Label>
                     <Input
                       id="businessName"
                       value={settings.businessInfo.name}
                       onChange={(e) => updateBusinessInfo('name', e.target.value)}
+                      className="text-xs sm:text-sm h-8 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="businessPhone">Phone</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="businessPhone" className="text-xs sm:text-sm">Phone</Label>
                     <Input
                       id="businessPhone"
                       value={settings.businessInfo.phone}
                       onChange={(e) => updateBusinessInfo('phone', e.target.value)}
+                      className="text-xs sm:text-sm h-8 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="businessGstin">GSTIN</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="businessGstin" className="text-xs sm:text-sm">GSTIN</Label>
                     <Input
                       id="businessGstin"
                       value={settings.businessInfo.gstin}
                       onChange={(e) => updateBusinessInfo('gstin', e.target.value)}
+                      className="text-xs sm:text-sm h-8 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="businessEmail">Email</Label>
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label htmlFor="businessEmail" className="text-xs sm:text-sm">Email</Label>
                     <Input
                       id="businessEmail"
                       value={settings.businessInfo.email}
                       onChange={(e) => updateBusinessInfo('email', e.target.value)}
+                      className="text-xs sm:text-sm h-8 sm:h-10"
                     />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Payment Information */}
-              <Card className="col-span-2">
+              <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Payment Information</CardTitle>
+                  <CardTitle className="text-sm sm:text-base">Payment Information</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="upiId">UPI ID</Label>
+                    <Label htmlFor="upiId" className="text-xs sm:text-sm">UPI ID</Label>
                     <Input
                       id="upiId"
                       value={settings.paymentInfo.upiId}
                       onChange={(e) => updatePaymentInfo('upiId', e.target.value)}
+                      className="text-xs sm:text-sm"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="paymentPhone">Payment Phone</Label>
+                    <Label htmlFor="paymentPhone" className="text-xs sm:text-sm">Payment Phone</Label>
                     <Input
                       id="paymentPhone"
                       value={settings.paymentInfo.phone}
                       onChange={(e) => updatePaymentInfo('phone', e.target.value)}
+                      className="text-xs sm:text-sm"
                     />
                   </div>
 
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="accountName">Account Name</Label>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="accountName" className="text-xs sm:text-sm">Account Name</Label>
                     <Input
                       id="accountName"
                       value={settings.paymentInfo.accountName}
                       onChange={(e) => updatePaymentInfo('accountName', e.target.value)}
+                      className="text-xs sm:text-sm"
                     />
                   </div>
                 </CardContent>
@@ -465,40 +459,40 @@ export function CustomerInvoice({
           </TabsContent>
 
           <TabsContent value="actions" className="mt-6">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {/* Quick Actions */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm sm:text-base">Quick Actions</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2 sm:space-y-3">
                   <Button
                     onClick={handleGeneratePDF}
                     disabled={isGenerating}
-                    className="w-full"
+                    className="w-full h-8 sm:h-10 text-xs sm:text-sm"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    {isGenerating ? 'Generating PDF...' : 'Download PDF'}
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                    {isGenerating ? 'Generating...' : 'Download PDF'}
                   </Button>
 
                   <Button
                     onClick={handlePrint}
                     variant="outline"
-                    className="w-full"
+                    className="w-full h-8 sm:h-10 text-xs sm:text-sm"
                   >
-                    <Printer className="h-4 w-4 mr-2" />
+                    <Printer className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Print Invoice
                   </Button>
 
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full h-8 sm:h-10 text-xs sm:text-sm"
                     onClick={() => toast({
                       title: "Feature Coming Soon",
                       description: "Email functionality will be available in the next update."
                     })}
                   >
-                    <Mail className="h-4 w-4 mr-2" />
+                    <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Email Invoice
                   </Button>
                 </CardContent>
@@ -506,13 +500,13 @@ export function CustomerInvoice({
 
               {/* Invoice Information */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Invoice Information</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm sm:text-base">Invoice Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                <CardContent className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
                     <span className="text-gray-600">Invoice #:</span>
-                    <span className="font-mono">{invoiceNumber}</span>
+                    <span className="font-mono break-all">{invoiceNumber}</span>
                     
                     <span className="text-gray-600">Date:</span>
                     <span>{format(parseISO(currentDate), 'dd/MM/yyyy')}</span>
@@ -521,17 +515,17 @@ export function CustomerInvoice({
                     <span>{format(parseISO(settings.dueDate), 'dd/MM/yyyy')}</span>
                     
                     <span className="text-gray-600">Customer:</span>
-                    <span>{customer.name}</span>
+                    <span className="truncate">{customer.name}</span>
                     
-                    <span className="text-gray-600">Customer Type:</span>
+                    <span className="text-gray-600">Type:</span>
                     <span className="capitalize">{customer.type}</span>
                   </div>
 
                   {unpaidOrders.length > 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                        <span className="text-sm font-medium text-yellow-800">
+                        <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
+                        <span className="text-xs sm:text-sm font-medium text-yellow-800">
                           {unpaidOrders.length} unpaid order(s)
                         </span>
                       </div>

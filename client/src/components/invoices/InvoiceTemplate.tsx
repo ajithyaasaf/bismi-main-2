@@ -196,78 +196,78 @@ const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({
               </tr>
             </thead>
             <tbody>
-            {filteredOrders.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="border border-gray-300 p-4 text-center text-gray-500">
-                  No orders found for this customer
-                </td>
-              </tr>
-            ) : (
-              filteredOrders.map((order, index) => {
-                const isOverdue = overdueOrders.some(o => o.id === order.id);
-                // Enterprise timestamp handling - use createdAt first, then date
-                const orderWithTimestamp = order as any;
-                const timestamp = orderWithTimestamp.createdAt || order.date;
-                const orderDate = typeof timestamp === 'string' ? parseISO(timestamp) : 
-                                 timestamp instanceof Date ? timestamp : new Date();
-                
-                return (
-                  <tr key={order.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="border border-gray-300 p-3">
-                      <span className="text-xs text-gray-500">
-                        {getOrderIdentifier(order, index)}
-                      </span>
-                    </td>
-                    <td className="border border-gray-300 p-3">
-                      {format(orderDate, 'dd/MM/yyyy')}
-                    </td>
-                    <td className="border border-gray-300 p-3">
-                      {formatOrderItems(Array.isArray(order.items) ? order.items : [])}
-                    </td>
-                    <td className="border border-gray-300 p-3 text-right font-mono">
-                      {formatCurrency(typeof order.total === 'number' ? order.total : 0)}
-                    </td>
-                    <td className="border border-gray-300 p-3 text-center">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        order.status === 'paid' 
-                          ? 'bg-green-100 text-green-800' 
-                          : isOverdue 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {order.status === 'paid' ? 'PAID' : isOverdue ? 'OVERDUE' : 'PENDING'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="border border-gray-300 p-4 text-center text-gray-500">
+                    No orders found for this customer
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map((order, index) => {
+                  const isOverdue = overdueOrders.some(o => o.id === order.id);
+                  const orderWithTimestamp = order as any;
+                  const timestamp = orderWithTimestamp.createdAt || order.date;
+                  const orderDate = typeof timestamp === 'string' ? parseISO(timestamp) : 
+                                   timestamp instanceof Date ? timestamp : new Date();
+                  
+                  return (
+                    <tr key={order.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="border border-gray-300 p-2 lg:p-3">
+                        <span className="text-xs text-gray-500">
+                          {getOrderIdentifier(order, index)}
+                        </span>
+                      </td>
+                      <td className="border border-gray-300 p-2 lg:p-3">
+                        {format(orderDate, 'dd/MM/yyyy')}
+                      </td>
+                      <td className="border border-gray-300 p-2 lg:p-3">
+                        {formatOrderItems(Array.isArray(order.items) ? order.items : [])}
+                      </td>
+                      <td className="border border-gray-300 p-2 lg:p-3 text-right font-mono">
+                        {formatCurrency(typeof order.total === 'number' ? order.total : 0)}
+                      </td>
+                      <td className="border border-gray-300 p-2 lg:p-3 text-center">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          order.status === 'paid' 
+                            ? 'bg-green-100 text-green-800' 
+                            : isOverdue 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {order.status === 'paid' ? 'PAID' : isOverdue ? 'OVERDUE' : 'PENDING'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Totals Section */}
-      <div className="totals-section flex justify-end mb-8">
-        <div className="totals-table w-1/3">
+      <div className="totals-section flex flex-col sm:flex-row sm:justify-end mb-6 lg:mb-8">
+        <div className="totals-table w-full sm:w-1/2 lg:w-1/3">
           <table className="w-full border border-gray-300">
             <tbody>
               <tr>
-                <td className="border border-gray-300 p-3 text-right font-semibold">Subtotal:</td>
-                <td className="border border-gray-300 p-3 text-right font-mono">{formatCurrency(grandTotal - taxAmount)}</td>
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-semibold text-xs lg:text-sm">Subtotal:</td>
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-mono text-xs lg:text-sm">{formatCurrency(grandTotal - taxAmount)}</td>
               </tr>
               <tr>
-                <td className="border border-gray-300 p-3 text-right font-semibold">Tax (5%):</td>
-                <td className="border border-gray-300 p-3 text-right font-mono">{formatCurrency(taxAmount)}</td>
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-semibold text-xs lg:text-sm">Tax (5%):</td>
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-mono text-xs lg:text-sm">{formatCurrency(taxAmount)}</td>
               </tr>
               <tr>
-                <td className="border border-gray-300 p-3 text-right font-semibold">Paid Amount:</td>
-                <td className="border border-gray-300 p-3 text-right font-mono text-green-600">
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-semibold text-xs lg:text-sm">Paid Amount:</td>
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-mono text-green-600 text-xs lg:text-sm">
                   -{formatCurrency(adjustedTotalPaid)}
                 </td>
               </tr>
               <tr className="bg-gray-100">
-                <td className="border border-gray-300 p-3 text-right font-bold text-lg">Total Due:</td>
-                <td className="border border-gray-300 p-3 text-right font-mono font-bold text-lg">
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-bold text-sm lg:text-lg">Total Due:</td>
+                <td className="border border-gray-300 p-2 lg:p-3 text-right font-mono font-bold text-sm lg:text-lg">
                   {formatCurrency(totalPending)}
                 </td>
               </tr>
@@ -277,17 +277,17 @@ const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({
       </div>
 
       {/* Payment Information */}
-      <div className="payment-section bg-gray-50 p-6 rounded-lg mb-8">
-        <h3 className="text-lg font-bold mb-4">Payment Information</h3>
-        <div className="grid grid-cols-2 gap-6">
+      <div className="payment-section bg-gray-50 p-4 lg:p-6 rounded-lg mb-6 lg:mb-8">
+        <h3 className="text-base lg:text-lg font-bold mb-4">Payment Information</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <h4 className="font-semibold mb-2">Payment Methods:</h4>
-            <p className="text-sm mb-2">UPI ID: <span className="font-mono">{paymentInfo.upiId}</span></p>
-            <p className="text-sm mb-2">Phone: <span className="font-mono">{paymentInfo.phone}</span></p>
-            <p className="text-sm">Account Name: {paymentInfo.accountName}</p>
+            <h4 className="font-semibold mb-2 text-sm lg:text-base">Payment Methods:</h4>
+            <p className="text-xs lg:text-sm mb-2">UPI ID: <span className="font-mono">{paymentInfo.upiId}</span></p>
+            <p className="text-xs lg:text-sm mb-2">Phone: <span className="font-mono">{paymentInfo.phone}</span></p>
+            <p className="text-xs lg:text-sm">Account Name: {paymentInfo.accountName}</p>
           </div>
           <div>
-            <h4 className="font-semibold mb-2">Terms & Conditions:</h4>
+            <h4 className="font-semibold mb-2 text-sm lg:text-base">Terms & Conditions:</h4>
             {paymentInfo.terms.map((term, index) => (
               <p key={index} className="text-xs text-gray-600 mb-1">• {term}</p>
             ))}
@@ -297,12 +297,12 @@ const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({
 
       {/* Overdue Notice */}
       {overdueOrders.length > 0 && (
-        <div className="notice bg-red-50 border border-red-200 p-4 rounded-lg mb-8">
+        <div className="notice bg-red-50 border border-red-200 p-4 rounded-lg mb-6 lg:mb-8">
           <div className="flex items-center">
             <div className="text-red-600 mr-2">⚠️</div>
             <div>
-              <h4 className="font-semibold text-red-800">Overdue Notice</h4>
-              <p className="text-sm text-red-700">
+              <h4 className="font-semibold text-red-800 text-sm lg:text-base">Overdue Notice</h4>
+              <p className="text-xs lg:text-sm text-red-700">
                 You have {overdueOrders.length} overdue order(s). Please settle your account immediately.
               </p>
             </div>
