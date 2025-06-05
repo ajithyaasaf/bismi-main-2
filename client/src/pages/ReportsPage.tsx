@@ -152,7 +152,18 @@ export default function ReportsPage() {
                   <TableBody>
                     {report.orders.map((order: any) => (
                       <TableRow key={order.id}>
-                        <TableCell>{format(new Date(order.date), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            // Enterprise timestamp handling - use createdAt first, then date
+                            const orderWithTimestamp = order as any;
+                            const timestamp = orderWithTimestamp.createdAt || order.date;
+                            try {
+                              return format(new Date(timestamp), 'MMM dd, yyyy');
+                            } catch (error) {
+                              return 'Invalid date';
+                            }
+                          })()}
+                        </TableCell>
                         <TableCell>{order.customerName || order.customerId}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 text-xs rounded-full 

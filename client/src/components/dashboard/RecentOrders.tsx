@@ -72,7 +72,18 @@ export default function RecentOrders({ orders, customers }: RecentOrdersProps) {
                 </div>
                 <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                   <i className="fas fa-calendar flex-shrink-0 mr-1.5 text-gray-400"></i>
-                  <p>{format(new Date(order.date), 'PPpp')}</p>
+                  <p>
+                    {(() => {
+                      // Enterprise timestamp handling - use createdAt first, then date
+                      const orderWithTimestamp = order as any;
+                      const timestamp = orderWithTimestamp.createdAt || order.date;
+                      try {
+                        return format(new Date(timestamp), 'PPpp');
+                      } catch (error) {
+                        return 'Invalid date';
+                      }
+                    })()}
+                  </p>
                 </div>
               </div>
               <div className="mt-2 flex justify-between">

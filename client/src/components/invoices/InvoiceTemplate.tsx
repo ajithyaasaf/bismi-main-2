@@ -204,8 +204,11 @@ const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({
             ) : (
               filteredOrders.map((order, index) => {
                 const isOverdue = overdueOrders.some(o => o.id === order.id);
-                const orderDate = typeof order.date === 'string' ? parseISO(order.date) : 
-                                 order.date instanceof Date ? order.date : new Date();
+                // Enterprise timestamp handling - use createdAt first, then date
+                const orderWithTimestamp = order as any;
+                const timestamp = orderWithTimestamp.createdAt || order.date;
+                const orderDate = typeof timestamp === 'string' ? parseISO(timestamp) : 
+                                 timestamp instanceof Date ? timestamp : new Date();
                 
                 return (
                   <tr key={order.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>

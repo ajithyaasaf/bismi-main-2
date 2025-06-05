@@ -42,7 +42,10 @@ export default function SalesChart() {
       dayEnd.setHours(23, 59, 59, 999);
       
       const dayOrders = orders.filter(order => {
-        const orderDate = new Date(order.date);
+        // Enterprise timestamp handling - use createdAt first, then date
+        const orderWithTimestamp = order as any;
+        const timestamp = orderWithTimestamp.createdAt || order.date;
+        const orderDate = new Date(timestamp);
         return orderDate >= dayStart && orderDate <= dayEnd;
       });
       
