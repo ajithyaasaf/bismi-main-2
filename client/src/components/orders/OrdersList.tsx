@@ -25,10 +25,13 @@ interface OrdersListProps {
 export default function OrdersList({ orders, customers, onUpdateStatus, onDelete }: OrdersListProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
-  // Sort orders by date (newest first)
+  // Sort orders by date (newest first) - Enterprise level timestamp handling
   const sortedOrders = [...orders].sort((a, b) => {
-    const dateA = a.date ? new Date(a.date) : new Date();
-    const dateB = b.date ? new Date(b.date) : new Date();
+    // Use createdAt as primary timestamp, fallback to date field
+    const aOrder = a as any;
+    const bOrder = b as any;
+    const dateA = aOrder.createdAt ? new Date(aOrder.createdAt) : (a.date ? new Date(a.date) : new Date(0));
+    const dateB = bOrder.createdAt ? new Date(bOrder.createdAt) : (b.date ? new Date(b.date) : new Date(0));
     return dateB.getTime() - dateA.getTime();
   });
   
@@ -78,7 +81,9 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
     // If a specific order is provided, include its details
     if (specificOrder) {
       message += `\n\n*Order Details:*`;
-      message += `\n📅 Date: ${format(specificOrder.date ? new Date(specificOrder.date) : new Date(), 'MMM dd, yyyy')}`;
+      // Use proper timestamp for WhatsApp message
+      const orderTimestamp = specificOrder.createdAt || specificOrder.date;
+      message += `\n📅 Date: ${orderTimestamp ? format(new Date(orderTimestamp), 'MMM dd, yyyy') : 'Unknown date'}`;
       message += `\n💰 Amount: ₹${specificOrder.total.toFixed(2)}`;
       message += `\n📦 Status: ${specificOrder.status === 'paid' ? 'Paid' : 'Pending'}`;
       
@@ -154,7 +159,18 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
               {sortedOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>
-                    {format(order.date ? new Date(order.date) : new Date(), 'MMM dd, yyyy HH:mm')}
+                    {(() => {
+                      // Enterprise-level timestamp handling - use createdAt first, then date, with proper error handling
+                      const orderTimestamp = order.createdAt || order.date;
+                      if (!orderTimestamp) {
+                        return <span className="text-red-500 text-xs">No timestamp</span>;
+                      }
+                      try {
+                        return format(new Date(orderTimestamp), 'MMM dd, yyyy HH:mm');
+                      } catch (error) {
+                        return <span className="text-red-500 text-xs">Invalid date</span>;
+                      }
+                    })()}
                   </TableCell>
                   <TableCell className="font-medium flex items-center gap-2">
                     {getCustomerName(order.customerId)}

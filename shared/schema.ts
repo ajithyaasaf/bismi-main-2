@@ -78,6 +78,7 @@ export const orders = pgTable("orders", {
   customerId: text("customer_id").notNull(),
   items: json("items").notNull(), // Array of OrderItem objects
   date: timestamp("date").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(), // Enterprise-level audit timestamp
   total: real("total").notNull().default(0),
   status: text("status").notNull(), // pending/paid
   type: text("type").notNull(), // hotel/random
@@ -92,6 +93,7 @@ export const orderItemSchema = z.object({
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
+  createdAt: true, // Auto-generated timestamp
 }).extend({
   items: z.array(orderItemSchema),
   date: z.union([
