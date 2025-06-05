@@ -418,6 +418,7 @@ export class FirebaseStorage implements IStorage {
           customerId: data.customerId,
           items: data.items,
           date: this.convertTimestamp(data.date),
+          createdAt: this.convertTimestamp(data.createdAt), // Enterprise audit timestamp
           total: data.total,
           status: data.status,
           type: data.type
@@ -478,18 +479,24 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
-  async createOrder(order: InsertOrder): Promise<Order> {
+  async createOrder(order: InsertOrder & { createdAt?: Date }): Promise<Order> {
     try {
+      const now = new Date();
       const orderDate = order.date ? Timestamp.fromDate(new Date(order.date)) : Timestamp.now();
+      const createdAtDate = order.createdAt ? Timestamp.fromDate(order.createdAt) : Timestamp.now();
+      
       const newOrder = {
         id: uuidv4(),
         ...order,
-        date: orderDate
+        date: orderDate,
+        createdAt: createdAtDate // Enterprise audit timestamp
       };
+      
       await addDoc(collection(this.db, 'orders'), newOrder);
       return {
         ...newOrder,
-        date: order.date ? new Date(order.date) : new Date()
+        date: order.date ? new Date(order.date) : now,
+        createdAt: order.createdAt || now
       } as Order;
     } catch (error) {
       console.error('Error creating order:', error);

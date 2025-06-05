@@ -444,12 +444,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enterprise-level request preprocessing for date handling
       console.log('Raw request body date:', req.body.date);
       
+      const now = new Date();
       const processedBody = {
         ...req.body,
-        date: req.body.date ? new Date(req.body.date) : new Date()
+        date: req.body.date ? new Date(req.body.date) : now,
+        // Enterprise audit trail: createdAt always reflects the actual creation time
+        createdAt: now
       };
       
       console.log('Processed date for order:', processedBody.date);
+      console.log('Created at timestamp:', processedBody.createdAt);
       
       const result = insertOrderSchema.safeParse(processedBody);
       if (!result.success) {
@@ -472,8 +476,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const storage = await getStorage();
       
-      // Create the order
-      const order = await storage.createOrder(result.data);
+      // Create the order with enterprise timestamp handling
+      const orderWithTimestamps = {
+        ...result.data,
+        createdAt: now
+      };
+      const order = await storage.createOrder(orderWithTimestamps as any);
       
       // Update inventory based on order items (Enterprise mode - allows negative stock)
       if (result.data.items && Array.isArray(result.data.items)) {

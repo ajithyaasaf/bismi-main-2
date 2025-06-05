@@ -82,7 +82,8 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
     if (specificOrder) {
       message += `\n\n*Order Details:*`;
       // Use proper timestamp for WhatsApp message
-      const orderTimestamp = specificOrder.createdAt || specificOrder.date;
+      const orderWithTimestamp = specificOrder as any;
+      const orderTimestamp = orderWithTimestamp.createdAt || specificOrder.date;
       message += `\n📅 Date: ${orderTimestamp ? format(new Date(orderTimestamp), 'MMM dd, yyyy') : 'Unknown date'}`;
       message += `\n💰 Amount: ₹${specificOrder.total.toFixed(2)}`;
       message += `\n📦 Status: ${specificOrder.status === 'paid' ? 'Paid' : 'Pending'}`;
@@ -161,7 +162,8 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                   <TableCell>
                     {(() => {
                       // Enterprise-level timestamp handling - use createdAt first, then date, with proper error handling
-                      const orderTimestamp = order.createdAt || order.date;
+                      const orderWithTimestamp = order as any;
+                      const orderTimestamp = orderWithTimestamp.createdAt || order.date;
                       if (!orderTimestamp) {
                         return <span className="text-red-500 text-xs">No timestamp</span>;
                       }
@@ -289,7 +291,20 @@ export default function OrdersList({ orders, customers, onUpdateStatus, onDelete
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-medium">{format(selectedOrder.date ? new Date(selectedOrder.date) : new Date(), 'PPpp')}</p>
+                  <p className="font-medium">
+                    {(() => {
+                      const orderWithTimestamp = selectedOrder as any;
+                      const orderTimestamp = orderWithTimestamp.createdAt || selectedOrder.date;
+                      if (!orderTimestamp) {
+                        return <span className="text-red-500 text-xs">No timestamp</span>;
+                      }
+                      try {
+                        return format(new Date(orderTimestamp), 'PPpp');
+                      } catch (error) {
+                        return <span className="text-red-500 text-xs">Invalid date</span>;
+                      }
+                    })()}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
