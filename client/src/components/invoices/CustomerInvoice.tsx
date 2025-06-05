@@ -277,6 +277,23 @@ export function CustomerInvoice({
           </DialogTitle>
         </DialogHeader>
 
+        {/* Hidden Invoice Template for PDF Generation - Always rendered */}
+        <div className="absolute -top-[9999px] left-0 opacity-0 pointer-events-none">
+          <InvoiceTemplate
+            ref={invoiceRef}
+            customer={customer}
+            orders={orders}
+            currentDate={currentDate}
+            invoiceNumber={invoiceNumber}
+            dueDate={settings.dueDate}
+            showPaid={settings.showPaid}
+            overdueThresholdDays={settings.overdueThresholdDays}
+            payments={transactions}
+            businessInfo={settings.businessInfo}
+            paymentInfo={settings.paymentInfo}
+          />
+        </div>
+
         <Tabs defaultValue="preview" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -341,7 +358,6 @@ export function CustomerInvoice({
               {/* Invoice Preview */}
               <div className="border rounded-lg overflow-hidden">
                 <InvoiceTemplate
-                  ref={invoiceRef}
                   customer={customer}
                   orders={orders}
                   currentDate={currentDate}
