@@ -206,11 +206,10 @@ export default function CustomersPage() {
 
       <CustomersList
         customers={displayCustomers}
-        isLoading={isPageLoading}
         onEdit={handleEditCustomer}
         onDelete={handleDeleteCustomer}
         onPayment={openPaymentModal}
-        onInvoice={openInvoiceModal}
+        onGenerateInvoice={openInvoiceModal}
       />
 
       {isFormOpen && (

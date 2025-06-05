@@ -215,7 +215,6 @@ export default function NewOrderModal({ isOpen, onClose, customers, inventory }:
         }
         
         validItems.push({
-          itemId: inventoryItem?.id || '', // Allow empty itemId if no inventory exists
           type: item.type,
           quantity,
           rate,

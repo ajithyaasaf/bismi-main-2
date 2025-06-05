@@ -40,11 +40,11 @@ export default function CustomersList({
       try {
         // Try to get the latest customer data from Firestore
         const updatedCustomer = await CustomerService.getCustomerById(customer.id);
-        if (updatedCustomer && 'id' in updatedCustomer && 'name' in updatedCustomer) {
+        if (updatedCustomer && updatedCustomer.id && updatedCustomer.name) {
           // Make sure we have a complete customer object
           latestCustomer = {
-            id: updatedCustomer.id || customer.id,
-            name: updatedCustomer.name || customer.name,
+            id: updatedCustomer.id,
+            name: updatedCustomer.name,
             type: updatedCustomer.type || customer.type,
             contact: updatedCustomer.contact || customer.contact,
             pendingAmount: updatedCustomer.pendingAmount !== undefined ? 
@@ -115,11 +115,14 @@ export default function CustomersList({
             message += `\n💰 Amount: ₹${latestOrder.total.toFixed(2)}`;
             message += `\n📦 Status: ${latestOrder.status === 'paid' ? 'Paid' : 'Pending'}`;
             
-            // Add item details
+            // Add item details with proper type mapping
             if (latestOrder.items && latestOrder.items.length > 0) {
               message += `\n\n*Items Purchased:*`;
-              latestOrder.items.forEach(item => {
-                message += `\n- ${item.quantity.toFixed(2)} kg ${item.type} (₹${item.rate.toFixed(2)}/kg)`;
+              latestOrder.items.forEach((item: any) => {
+                const itemDetails = item.details ? ` - ${item.details}` : '';
+                const itemTotal = (item.quantity * item.rate).toFixed(2);
+                message += `\n• ${item.quantity.toFixed(2)} kg ${item.type}${itemDetails}`;
+                message += `\n  Rate: ₹${item.rate.toFixed(2)}/kg | Total: ₹${itemTotal}`;
               });
             }
           }

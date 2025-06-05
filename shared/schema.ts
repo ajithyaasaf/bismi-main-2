@@ -84,7 +84,6 @@ export const orders = pgTable("orders", {
 });
 
 export const orderItemSchema = z.object({
-  itemId: z.string(),
   type: z.enum(ITEM_TYPES.map(item => item.value) as [string, ...string[]]),
   quantity: z.number(),
   rate: z.number(),
