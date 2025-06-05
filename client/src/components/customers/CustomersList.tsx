@@ -39,17 +39,14 @@ export default function CustomersList({
       
       try {
         // Try to get the latest customer data from Firestore
-        const updatedCustomer = await CustomerService.getCustomerById(customer.id);
-        if (updatedCustomer && updatedCustomer.id && updatedCustomer.name) {
-          // Make sure we have a complete customer object
+        const updatedCustomer = await CustomerService.getCustomerById(customer.id) as any;
+        if (updatedCustomer) {
+          // Use the updated customer data directly, fallback to original if properties are missing
           latestCustomer = {
-            id: updatedCustomer.id,
-            name: updatedCustomer.name,
-            type: updatedCustomer.type || customer.type,
-            contact: updatedCustomer.contact || customer.contact,
+            ...customer,
+            ...updatedCustomer,
             pendingAmount: updatedCustomer.pendingAmount !== undefined ? 
-              updatedCustomer.pendingAmount : customer.pendingAmount,
-            createdAt: updatedCustomer.createdAt || customer.createdAt
+              updatedCustomer.pendingAmount : customer.pendingAmount
           };
           console.log("Got latest customer data for WhatsApp message:", latestCustomer);
         }
