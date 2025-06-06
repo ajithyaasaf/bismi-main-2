@@ -1,18 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { v4 as uuidv4 } from 'uuid';
+import { getServerlessStorage } from '../server/serverless-helper';
+import { insertSupplierSchema } from '../shared/schema';
 
-// Sample data - will reset on each cold start in serverless
-const suppliers = [
-  {
-    id: uuidv4(),
-    name: "Fresh Farm Foods",
-    debt: 1200,
-    contact: "555-123-4567",
-    createdAt: new Date()
-  }
-];
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,26 +18,33 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const storage = getServerlessStorage();
+
     if (req.method === 'GET') {
+      const suppliers = await storage.getAllSuppliers();
       return res.status(200).json(suppliers);
     } 
     
     if (req.method === 'POST') {
-      const newSupplier = {
-        id: uuidv4(),
-        name: req.body?.name || 'New Supplier',
-        debt: req.body?.debt || 0,
-        contact: req.body?.contact || null,
-        createdAt: new Date()
-      };
-      suppliers.push(newSupplier);
+      console.log('Vercel suppliers POST:', req.body);
+      
+      const result = insertSupplierSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Supplier validation failed:", result.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid supplier data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const newSupplier = await storage.createSupplier(result.data);
       return res.status(201).json(newSupplier);
     }
     
     // Method not allowed
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Vercel suppliers API Error:', error);
     return res.status(500).json({
       error: 'Internal Server Error',
       message: error instanceof Error ? error.message : 'Unknown error'

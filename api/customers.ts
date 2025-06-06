@@ -1,19 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { v4 as uuidv4 } from 'uuid';
+import { getServerlessStorage } from '../server/serverless-helper';
+import { insertCustomerSchema } from '../shared/schema';
 
-// Sample data - will reset on each cold start in serverless
-const customers = [
-  {
-    id: uuidv4(),
-    name: "Spice Restaurant",
-    type: "restaurant",
-    contact: "555-987-6543",
-    pendingAmount: 2500,
-    createdAt: new Date()
-  }
-];
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,27 +18,33 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const storage = getServerlessStorage();
+
     if (req.method === 'GET') {
+      const customers = await storage.getAllCustomers();
       return res.status(200).json(customers);
     } 
     
     if (req.method === 'POST') {
-      const newCustomer = {
-        id: uuidv4(),
-        name: req.body?.name || 'New Customer',
-        type: req.body?.type || 'hotel',
-        contact: req.body?.contact || null,
-        pendingAmount: req.body?.pendingAmount || 0,
-        createdAt: new Date()
-      };
-      customers.push(newCustomer);
+      console.log('Vercel customers POST:', req.body);
+      
+      const result = insertCustomerSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Customer validation failed:", result.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid customer data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const newCustomer = await storage.createCustomer(result.data);
       return res.status(201).json(newCustomer);
     }
     
     // Method not allowed
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Vercel customers API Error:', error);
     return res.status(500).json({
       error: 'Internal Server Error',
       message: error instanceof Error ? error.message : 'Unknown error'
