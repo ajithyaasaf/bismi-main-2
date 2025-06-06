@@ -1,23 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { v4 as uuidv4 } from 'uuid';
+import { getServerlessStorage } from '../server/serverless-helper';
+import { insertTransactionSchema } from '../shared/schema';
 
-// Generate an entity ID for sample data
-const sampleEntityId = uuidv4(); 
-
-// Sample data - will reset on each cold start in serverless
-const transactions = [
-  {
-    id: uuidv4(),
-    type: "income",
-    amount: 1200,
-    entityId: sampleEntityId,
-    entityType: "customer",
-    date: new Date(),
-    description: "Payment received"
-  }
-];
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,28 +18,33 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const storage = getServerlessStorage();
+
     if (req.method === 'GET') {
+      const transactions = await storage.getAllTransactions();
       return res.status(200).json(transactions);
     } 
     
     if (req.method === 'POST') {
-      const newTransaction = {
-        id: uuidv4(),
-        type: req.body?.type || 'expense',
-        amount: req.body?.amount || 0,
-        entityId: req.body?.entityId || '',
-        entityType: req.body?.entityType || 'customer',
-        description: req.body?.description || null,
-        date: new Date()
-      };
-      transactions.push(newTransaction);
+      console.log('Vercel transactions POST:', req.body);
+      
+      const result = insertTransactionSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Transaction validation failed:", result.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid transaction data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const newTransaction = await storage.createTransaction(result.data);
       return res.status(201).json(newTransaction);
     }
     
     // Method not allowed
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Vercel transactions API Error:', error);
     return res.status(500).json({
       error: 'Internal Server Error',
       message: error instanceof Error ? error.message : 'Unknown error'
