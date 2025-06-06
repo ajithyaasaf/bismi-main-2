@@ -1,14 +1,20 @@
 #!/bin/bash
+# Vercel build script
 
-# Install dependencies
-npm install
+echo "Starting Vercel build process..."
 
-# Build the client
-cd client
+# Build the frontend with Vite
+echo "Building frontend..."
 npm run build
 
-# Build the server
-cd ..
-npm run build:server
+# Ensure the output directory exists and has correct structure
+echo "Verifying build output..."
+if [ -d "dist/public" ]; then
+    echo "✓ Frontend build output found in dist/public"
+    ls -la dist/public/
+else
+    echo "✗ Frontend build output not found"
+    exit 1
+fi
 
-echo "Build completed successfully"
+echo "Vercel build complete!"
